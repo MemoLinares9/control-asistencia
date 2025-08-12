@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Asistencia Casa/Oficina</title>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0b0f17; --panel:#0f172a; --muted:#9ca3af; --text:#e5e7eb; --line:#1f2937;
+      --accent:#06b6d4; --good:#22c55e; --warn:#f59e0b; --bad:#ef4444;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0; font-family:Inter,system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:var(--bg); color:var(--text)}
+    .wrap{max-width:1100px; margin:24px auto; padding:0 16px}
+    header{display:flex; gap:12px; align-items:center; justify-content:space-between; margin-bottom:16px}
+    h1{font-size:22px; margin:0; letter-spacing:.2px}
+    .pill{display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px; border:1px solid var(--line); background:#0b1220; color:var(--text); font-size:12px}
+    .row{display:flex; gap:12px; flex-wrap:wrap; align-items:center}
+    .panel{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px; margin:12px 0}
+    .muted{color:var(--muted)}
+    button{appearance:none; border:1px solid var(--line); background:#0b1220; color:var(--text); padding:10px 14px; border-radius:12px; cursor:pointer; font-weight:600}
+    button.primary{background:var(--accent); border-color:transparent; color:#001018}
+    button.good{background:rgba(34,197,94,.15); border-color:#234a33}
+    button.warn{background:rgba(245,158,11,.15); border-color:#5a4515}
+    button.bad{background:rgba(239,68,68,.15); border-color:#5b1e1e}
+    button:disabled{opacity:.5; cursor:not-allowed}
+    input,select{background:#0b1220; color:var(--text); border:1px solid var(--line); border-radius:10px; padding:10px 12px}
+    table{width:100%; border-collapse:separate; border-spacing:0; font-size:14px}
+    th,td{padding:10px 12px; border-bottom:1px solid var(--line)}
+    th{text-align:left; color:var(--muted); font-weight:600; background:#0b1220}
+    tr:hover td{background:rgba(2,6,23,.35)}
+    small{font-size:12px}
+    .gap{height:4px}
+    .right{margin-left:auto}
+    .badge{padding:4px 8px; border-radius:999px; font-size:12px; border:1px solid var(--line)}
+    .b-home{background:rgba(99,102,241,.12); border-color:#30316a}
+    .b-office{background:rgba(16,185,129,.12); border-color:#1f5a49}
+    .inline{display:inline-flex; gap:8px; align-items:center}
+    a{color:#67e8f9; text-decoration:underline dotted}
+    .hidden{display:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="row">
+        <h1>Asistencia</h1>
+        <span class="pill" id="who">No conectado</span>
+      </div>
+      <div class="row">
+        <input type="email" id="email" placeholder="tu@correo.com" />
+        <button id="sendLink">Entrar</button>
+        <button id="logout" class="bad hidden">Salir</button>
+      </div>
+    </header>
+
+    <div class="panel">
+      <div class="row">
+        <div class="inline">
+          <strong>Hoy:</strong>
+          <span id="todayStr" class="muted"></span>
+        </div>
+        <div class="right row">
+          <button id="btnHome" class="warn">🏠 Casa</button>
+          <button id="btnOffice" class="good">🏢 Oficina</button>
+        </div>
+      </div>
+      <div class="gap"></div>
+      <small class="muted">Al hacer clic se registra/actualiza tu asistencia de hoy.</small>
+    </div>
+
+    <div class="panel">
+      <div class="row">
+        <div class="inline">
+          <strong>Registros recientes</strong>
+          <small id="count" class="muted"></small>
+        </div>
+        <div class="right row">
+          <label class="muted">Área</label>
+          <select id="areaSelect"></select>
+          <label class="muted">Días</label>
+          <select id="days">
+            <option value="7">7</option>
+            <option value="14">14</option>
+            <option value="30" selected>30</option>
+          </select>
+          <button id="refresh">Actualizar</button>
+        </div>
+      </div>
+      <div class="gap"></div>
+      <table>
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Fecha</th>
+            <th>Ubicación</th>
+            <th>Área</th>
+          </tr>
+        </thead>
+        <tbody id="rows">
+          <tr><td colspan="4" class="muted">Sin datos</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <small class="muted">
+        Hecho con Supabase. Unique key recomendada en <code>attendance(user_id, work_date)</code>.
+      </small>
+    </div>
+  </div>
+
+  <script>
+    // ====== CONFIG TUS CLAVES ======
+    const SUPABASE_URL = "https://tkrlcuqbujzwqhweblto.supabase.co";
+    const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRrcmxjdXFidWp6d3Fod2VibHRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5MTUzODIsImV4cCI6MjA3MDQ5MTM4Mn0.PjwSfBreunYD1RyiOUeCzJKIug7Wc7YSaqZFzMJXCxg";
+
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    // ====== UTILES ======
+    const fmt = d => new Date(d).toLocaleDateString('es-PE', { weekday:'short', year:'numeric', month:'short', day:'2-digit' });
+    const toISO = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString().slice(0,10);
+    const today = new Date();
+    document.getElementById('todayStr').textContent = fmt(today);
+
+    const who = document.getElementById('who');
+    const emailInput = document.getElementById('email');
+    const sendLink = document.getElementById('sendLink');
+    const logoutBtn = document.getElementById('logout');
+    const btnHome = document.getElementById('btnHome');
+    const btnOffice = document.getElementById('btnOffice');
+    const rows = document.getElementById('rows');
+    const count = document.getElementById('count');
+    const areaSelect = document.getElementById('areaSelect');
+    const daysSel = document.getElementById('days');
+    const refreshBtn = document.getElementById('refresh');
+
+    // ====== AUTH ======
+    async function paintUser(){
+      const { data:{ user } } = await sb.auth.getUser();
+      if(user){
+        who.textContent = user.email;
+        who.classList.remove('muted');
+        logoutBtn.classList.remove('hidden');
+        emailInput.classList.add('hidden');
+        sendLink.classList.add('hidden');
+      }else{
+        who.textContent = "No conectado";
+        who.classList.add('muted');
+        logoutBtn.classList.add('hidden');
+        emailInput.classList.remove('hidden');
+        sendLink.classList.remove('hidden');
+      }
+    }
+
+    sendLink.onclick = async () => {
+      const email = emailInput.value?.trim();
+      if(!email) return alert('Escribe tu correo');
+      const { error } = await sb.auth.signInWithOtp({ email, options:{ emailRedirectTo: window.location.href }});
+      if(error) return alert('Error: ' + error.message);
+      alert('Te envié un Magic Link. Revisa tu correo y vuelve aquí.');
+    };
+
+    logoutBtn.onclick = async () => {
+      await sb.auth.signOut();
+      await paintUser();
+      await loadAreas();
+      await loadTable();
+    };
+
+    sb.auth.onAuthStateChange(async (_evt) => {
+      await paintUser();
+      await loadAreas();
+      await loadTable();
+    });
+
+    // ====== AREAS ======
+    async function loadAreas(){
+      areaSelect.innerHTML = `<option value="">Todas</option>`;
+      const { data, error } = await sb.from('areas').select('id:name, name, org_id').order('name');
+      if(error){ console.warn(error); return; }
+      for(const a of data){
+        const opt = document.createElement('option');
+        opt.value = a.id;
+        opt.textContent = a.name;
+        areaSelect.appendChild(opt);
+      }
+    }
+
+    // ====== INSERT/UPDATE HOY ======
+    async function register(location){
+      const { data:{ user } } = await sb.auth.getUser();
+      if(!user) return alert('Primero inicia sesión');
+      // Traer tu org_id y (opcional) tu area preferida: primera del area_membership
+      const { data: prof } = await sb.from('profiles').select('id, org_id, full_name, email').eq('id', user.id).maybeSingle();
+      if(!prof || !prof.org_id) return alert('Tu perfil no tiene org_id. Pídeme que lo configuremos.');
+      let area_id = null;
+      const { data: mem } = await sb.from('area_membership').select('area_id').eq('user_id', user.id).limit(1);
+      if(mem && mem.length) area_id = mem[0].area_id;
+
+      const payload = {
+        user_id: user.id,
+        work_date: toISO(today),
+        location,        // 'home' | 'office'
+        org_id: prof.org_id,
+        area_id: area_id,
+      };
+      // upsert por conflict user_id+work_date (necesitas unique index en esa combinación)
+      const { error } = await sb.from('attendance').upsert(payload, { onConflict: 'user_id,work_date' });
+      if(error){ alert('No pude guardar: ' + error.message); return; }
+      await loadTable();
+    }
+
+    btnHome.onclick = () => register('home');
+    btnOffice.onclick = () => register('office');
+
+    // ====== TABLA ======
+    async function loadTable(){
+      rows.innerHTML = `<tr><td colspan="4" class="muted">Cargando…</td></tr>`;
+      const days = Number(daysSel.value || 30);
+      const since = new Date(Date.now() - days*86400000).toISOString().slice(0,10);
+      const areaFilter = areaSelect.value;
+
+      let q = sb
+        .from('attendance')
+        .select('work_date, location, area_id, profiles:profiles!attendance_user_id_fkey(full_name, email), areas:areas!attendance_area_id_fkey(name)')
+        .gte('work_date', since)
+        .order('work_date', { ascending:false })
+        .limit(200);
+
+      if(areaFilter) q = q.eq('area_id', areaFilter);
+
+      const { data, error } = await q;
+      if(error){ rows.innerHTML = `<tr><td colspan="4" class="muted">Error: ${error.message}</td></tr>`; return; }
+
+      count.textContent = `(${data.length})`;
+      if(!data.length){ rows.innerHTML = `<tr><td colspan="4" class="muted">Sin datos</td></tr>`; return; }
+
+      rows.innerHTML = '';
+      for(const r of data){
+        const tr = document.createElement('tr');
+        const user = r.profiles?.full_name || r.profiles?.email || '—';
+        const loc = r.location === 'office' ? '<span class="badge b-office">Oficina</span>' : '<span class="badge b-home">Casa</span>';
+        const area = r.areas?.name || '—';
+        tr.innerHTML = `<td>${user}</td><td>${fmt(r.work_date)}</td><td>${loc}</td><td>${area}</td>`;
+        rows.appendChild(tr);
+      }
+    }
+
+    refreshBtn.onclick = loadTable;
+    areaSelect.onchange = loadTable;
+    daysSel.onchange = loadTable;
+
+    // Primera carga
+    (async () => {
+      await paintUser();
+      await loadAreas();
+      await loadTable();
+    })();
+  </script>
+</body>
+</html>

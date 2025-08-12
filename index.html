@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Control de Asistencia</title>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    :root{
+      --bg:#0b0f17; --panel:#0f172a; --muted:#111827; --line:#1f2937; --text:#e5e7eb;
+      --brand:#7dd3fc; --ok:#86efac; --warn:#fbbf24; --bad:#f87171;
+      --badge:#1e293b; --home-bg:#1e293b; --home-fg:#93c5fd; --office-bg:#0f2f24; --office-fg:#86efac;
+      --pill:#0b1220; --pill-b:#1f2435;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    a{color:#93c5fd;text-decoration:none} a:hover{text-decoration:underline}
+    .wrap{max-width:1100px;margin:36px auto;padding:0 16px}
+
+    /* NAV */
+    .top{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+    .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:22px}
+    .dot{width:14px;height:14px;border-radius:4px;background:linear-gradient(135deg,#22d3ee,#60a5fa)}
+    .tabs{display:flex;gap:8px;margin-left:16px}
+    .tab{background:var(--panel);border:1px solid var(--line);padding:10px 14px;border-radius:10px;cursor:pointer;color:var(--text)}
+    .tab.active{outline:2px solid #3b82f6}
+    .session{margin-left:auto;opacity:.85;white-space:nowrap}
+    .btn{background:#1f2937;border:1px solid var(--line);color:var(--text);padding:8px 12px;border-radius:10px;cursor:pointer}
+    .btn:hover{filter:brightness(1.1)}
+    button{color:var(--text)} /* por si acaso el navegador impone negro */
+
+    /* CARDS / TABLES */
+    .grid{display:grid;gap:12px}
+    .grid.cols-2{grid-template-columns:1fr 1fr}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+    .title{font-weight:700;margin:0 0 10px 0}
+    .muted{opacity:.75}
+    .kpi{font-size:34px;font-weight:800;margin-top:8px}
+    .table{width:100%;border-collapse:separate;border-spacing:0 8px}
+    .th{opacity:.8;font-weight:700}
+    .tr{background:var(--muted);border:1px solid var(--line);border-radius:10px}
+    .td,.th{padding:10px 12px}
+    .td:first-child,.th:first-child{border-top-left-radius:10px;border-bottom-left-radius:10px}
+    .td:last-child,.th:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px}
+
+    /* Pills */
+    .pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:.85rem;background:var(--pill);border:1px solid var(--pill-b)}
+    .pill.home{background:var(--home-bg);color:var(--home-fg);border-color:#1f3a5f}
+    .pill.office{background:var(--office-bg);color:var(--office-fg);border-color:#1b4d3a}
+    .pill.muted{opacity:.7}
+
+    /* Calendar */
+    .calendar{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px}
+    .cal-head,.cal-row{display:grid;grid-template-columns:260px repeat(7,1fr);gap:8px;align-items:center}
+    .cell{background:var(--muted);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}
+    .cell.head{background:#0c1526;font-weight:700}
+    .cell.member{text-align:left}
+    .cell.day{cursor:pointer}
+    .member-name{font-weight:700}
+    .member-unit{opacity:.75;font-size:.9rem}
+
+    .footer{margin-top:26px;text-align:center;opacity:.5}
+    .error{color:var(--bad)}
+
+    /* Dashboard toolbar (solo etiqueta de semana) */
+    .toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+
+    /* Inputs generales */
+    input,select{background:var(--muted);border:1px solid var(--line);color:var(--text);padding:10px;border-radius:10px;outline:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Header -->
+    <div class="top">
+      <div class="logo"><span class="dot"></span> Control de Asistencia</div>
+      <div class="tabs">
+        <button class="tab active" id="tabDash">Dashboard</button>
+        <button class="tab" id="tabCal">Calendario</button>
+        <button class="tab" id="tabTeam">Equipos</button>
+      </div>
+      <div class="session" id="sessionInfo">Sesión: —</div>
+      <button class="btn" id="btnLogout">Salir</button>
+    </div>
+
+    <!-- DASHBOARD -->
+    <section id="viewDashboard" class="grid">
+      <div class="toolbar card">
+        <div class="muted" id="weekRange">Semana</div>
+      </div>
+
+      <div class="grid cols-2">
+        <div class="card">
+          <h3 class="title">Porcentaje Casa (semana)</h3>
+          <div class="muted" id="kpiHomeDesc">—</div>
+          <div class="kpi" id="kpiHome">—</div>
+        </div>
+        <div class="card">
+          <h3 class="title">Porcentaje Oficina (semana)</h3>
+          <div class="muted" id="kpiOfficeDesc">—</div>
+          <div class="kpi" id="kpiOffice">—</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="title">Resumen por unidad (mes)</h3>
+        <div class="muted" id="monthLabel" style="margin:6px 0 10px 0">—</div>
+        <table class="table">
+          <thead>
+            <tr class="th tr">
+              <th class="th">Unidad</th>
+              <th class="th">% Casa</th>
+              <th class="th">% Oficina</th>
+              <th class="th">Registros</th>
+            </tr>
+          </thead>
+          <tbody id="unitBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- CALENDARIO -->
+    <section id="viewCalendar" style="display:none">
+      <div class="card" style="display:flex;gap:8px;align-items:center;justify-content:space-between">
+        <div>
+          <button class="btn" id="btnPrevWeek">← Semana anterior</button>
+          <button class="btn" id="btnNextWeek">Semana siguiente →</button>
+        </div>
+        <div class="muted" id="weekLabel">Semana</div>
+      </div>
+      <div id="calendarContainer" class="calendar" style="margin-top:12px"></div>
+      <div class="footer">© Tu app de asistencia</div>
+    </section>
+
+    <!-- EQUIPOS (crear y listar) -->
+    <section id="viewTeams" style="display:none" class="grid">
+      <div class="card">
+        <h3 class="title">Crear miembro</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input id="inName" placeholder="Nombre completo" class="cell" style="flex:2;min-width:240px">
+          <input id="inEmail" placeholder="Email (opcional)" class="cell" style="flex:2;min-width:220px">
+          <input id="inUnit" placeholder="Unidad/Área (opcional)" class="cell" style="flex:1;min-width:180px">
+          <button class="btn" id="btnCreate">Crear</button>
+        </div>
+        <div class="muted" style="margin-top:8px">Los miembros no necesitan cuenta. Quedan ligados a tu organización.</div>
+      </div>
+
+      <div class="card">
+        <h3 class="title">Miembros</h3>
+        <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+          <input id="inFilter" placeholder="Filtrar por nombre/unidad..." class="cell" style="flex:1;min-width:240px">
+          <button class="btn" id="btnRefreshMembers">Actualizar</button>
+        </div>
+        <table class="table">
+          <thead>
+            <tr class="th tr">
+              <th class="th">Nombre</th>
+              <th class="th">Unidad</th>
+              <th class="th">Email</th>
+              <th class="th">Activo</th>
+              <th class="th">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="membersBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // ================== CONFIG SUPABASE ==================
+    const SUPABASE_URL  = "https://tkrlcuqbujzwqhweblto.supabase.co";
+    const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRrcmxjdXFidWp6d3Fod2VibHRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5MTUzODIsImV4cCI6MjA3MDQ5MTM4Mn0.PjwSfBreunYD1RyiOUeCzJKIug7Wc7YSaqZFzMJXCxg";
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    // ================== STATE ==================
+    const state = {
+      user: null,
+      orgId: null,
+      weekStart: null,  // Monday
+    };
+
+    // ================== NAV ==================
+    const $ = (sel)=>document.querySelector(sel);
+    const show = id => {
+      ['viewDashboard','viewCalendar','viewTeams'].forEach(v=>$( '#' + v).style.display = (v===id?'':'none'));
+      ['tabDash','tabCal','tabTeam'].forEach(t=>$('#'+t).classList.remove('active'));
+      if(id==='viewDashboard') $('#tabDash').classList.add('active');
+      if(id==='viewCalendar')  $('#tabCal').classList.add('active');
+      if(id==='viewTeams')     $('#tabTeam').classList.add('active');
+    };
+
+    $('#tabDash').onclick = ()=>{ show('viewDashboard'); loadDashboard(); };
+    $('#tabCal').onclick  = ()=>{ show('viewCalendar');  loadCalendar();  };
+    $('#tabTeam').onclick = ()=>{ show('viewTeams');     loadMembers();   };
+
+    $('#btnLogout').onclick = async()=>{ await sb.auth.signOut(); location.reload(); };
+
+    // ================== INIT ==================
+    init();
+    async function init(){
+      const { data:{ user } } = await sb.auth.getUser();
+      if(!user){
+        const email = prompt('Ingresa tu correo para Magic Link (o deja vacío para ver demo):');
+        if(email){
+          const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.href }});
+          alert(error ? 'No se pudo enviar el Magic Link: '+error.message : 'Revisa tu correo y abre el enlace.');
+        } else {
+          alert('Sesión demo. Para datos reales, entra con Magic Link.');
+        }
+      } else {
+        state.user = user;
+        $('#sessionInfo').textContent = 'Sesión: ' + (user.email || user.id);
+      }
+
+      // Cargar org desde profiles
+      if(state.user){
+        const { data, error } = await sb.from('profiles').select('org_id').eq('id', state.user.id).maybeSingle();
+        if(error){ console.error(error); }
+        state.orgId = data?.org_id || null;
+      }
+
+      // Semana actual (lunes)
+      const today = new Date();
+      const monday = new Date(today);
+      monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+      state.weekStart = monday;
+
+      updateWeekRangeLabel();
+
+      // Render inicial
+      show('viewDashboard');
+      await loadDashboard();
+    }
+
+    // ================== DASHBOARD ==================
+    function updateWeekRangeLabel() {
+      const ws = weekStart();
+      const we = weekEnd();
+      const fmt = (dd) => new Date(dd).toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit'});
+      const el = $('#weekRange');
+      if (el) el.textContent = `Semana del ${fmt(ws)} al ${fmt(we)}`;
+    }
+
+    async function loadDashboard(){
+      if(!state.orgId){ setKpis(null); drawUnitSummary([]); return; }
+
+      // KPIs de semana
+      const { data:att, error:e1 } = await sb
+        .from('attendance')
+        .select('location, member_id, work_date')
+        .gte('work_date', iso(weekStart()))
+        .lte('work_date', iso(weekEnd()))
+        .eq('org_id', state.orgId)
+        .limit(1000);
+
+      if(e1){ console.error(e1); setKpis(null); }
+      else {
+        const total = att.length || 1;
+        const home  = att.filter(r=>r.location==='home').length;
+        const office= att.filter(r=>r.location==='office').length;
+        setKpis({ home: Math.round(home*100/total), office: Math.round(office*100/total) });
+      }
+
+      // Resumen mensual por unidad
+      await loadMonthlyUnitSummary();
+    }
+
+    function setKpis(x){
+      if(!x){
+        $('#kpiHome').textContent='—'; $('#kpiOffice').textContent='—';
+        $('#kpiHomeDesc').textContent=''; $('#kpiOfficeDesc').textContent='';
+        return;
+      }
+      $('#kpiHome').textContent   = x.home + '%';
+      $('#kpiOffice').textContent = x.office + '%';
+      $('#kpiHomeDesc').textContent = 'Semana actual';
+      $('#kpiOfficeDesc').textContent = 'Semana actual';
+    }
+
+    async function loadMonthlyUnitSummary(){
+      if(!state.orgId){ drawUnitSummary([]); return; }
+      const monthStart = firstDayOfMonth(weekStart());
+      const monthEnd   = lastDayOfMonth(monthStart);
+      $('#monthLabel').textContent = monthStart.toLocaleDateString('es-CO',{year:'numeric',month:'2-digit'});
+
+      const { data:members, error:em } = await sb
+        .from('team_members')
+        .select('id, unit')
+        .eq('org_id', state.orgId);
+      if(em){ console.error(em); drawUnitSummary([]); return; }
+      const unitByMember = new Map(members.map(m=>[m.id, m.unit || '—']));
+
+      const { data:atts, error:ea } = await sb
+        .from('attendance')
+        .select('member_id, location, work_date')
+        .eq('org_id', state.orgId)
+        .gte('work_date', iso(monthStart))
+        .lte('work_date', iso(monthEnd))
+        .limit(5000);
+      if(ea){ console.error(ea); drawUnitSummary([]); return; }
+
+      const agg = new Map(); // unit -> {home, office, total}
+      for(const a of atts){
+        const unit = unitByMember.get(a.member_id) || '—';
+        if(!agg.has(unit)) agg.set(unit, {home:0, office:0, total:0});
+        const o = agg.get(unit);
+        if(a.location==='home')   o.home++;
+        else if(a.location==='office') o.office++;
+        o.total++;
+      }
+
+      const rows = [...agg.entries()].map(([unit, v])=>{
+        const total = v.total || 1;
+        return {
+          unit,
+          homePct: Math.round((v.home*100)/total),
+          officePct: Math.round((v.office*100)/total),
+          total: v.total
+        }
+      }).sort((a,b)=>a.unit.localeCompare(b.unit));
+
+      drawUnitSummary(rows);
+    }
+
+    function drawUnitSummary(rows){
+      const body = $('#unitBody'); body.innerHTML='';
+      if(!rows.length){
+        body.innerHTML = `<tr class="tr"><td class="td" colspan="4">—</td></tr>`;
+        return;
+      }
+      for(const r of rows){
+        const tr = document.createElement('tr'); tr.className='tr';
+        tr.innerHTML = `
+          <td class="td">${r.unit}</td>
+          <td class="td">${r.homePct}%</td>
+          <td class="td">${r.officePct}%</td>
+          <td class="td">${r.total}</td>`;
+        body.appendChild(tr);
+      }
+    }
+
+    // ================== CALENDARIO ==================
+    $('#btnPrevWeek').onclick = ()=>{ shiftWeek(-7); updateWeekRangeLabel(); loadCalendar(); };
+    $('#btnNextWeek').onclick = ()=>{ shiftWeek(+7); updateWeekRangeLabel(); loadCalendar(); };
+
+    function shiftWeek(delta){ const d = weekStart(); d.setDate(d.getDate()+delta); state.weekStart = d; }
+    function weekStart(){ return new Date(state.weekStart); }
+    function weekEnd(){ const d = weekStart(); d.setDate(d.getDate()+6); return d; }
+
+    async function loadCalendar(){
+      const cont = $('#calendarContainer');
+      cont.innerHTML = 'Cargando…';
+      const ws = weekStart(), we = weekEnd();
+      $('#weekLabel').textContent = `Semana del ${fmtDate(ws)} al ${fmtDate(we)}`;
+
+      if(!state.orgId){ cont.innerHTML = '<div class="error">No hay organización</div>'; return; }
+
+      const days = rangeDays(ws,we);
+      const { data:members, error:em } = await sb.from('team_members')
+        .select('id, full_name, unit, active')
+        .eq('org_id', state.orgId).eq('active', true).order('full_name');
+      if(em){ cont.innerHTML = `<div class="error">${em.message}</div>`; return; }
+
+      const { data:atts, error:ea } = await sb.from('attendance')
+        .select('member_id, work_date, location')
+        .eq('org_id', state.orgId).gte('work_date', iso(ws)).lte('work_date', iso(we)).limit(1000);
+      if(ea){ cont.innerHTML = `<div class="error">${ea.message}</div>`; return; }
+
+      const rows = [];
+      for(const m of members){
+        for(const d of days){
+          const hit = atts.find(a=>a.member_id===m.id && a.work_date===iso(d));
+          rows.push({ member_id:m.id, full_name:m.full_name, unit:m.unit||'—', work_date:iso(d), location:hit?.location||null });
+        }
+      }
+
+      const dayKeys = days.map(d=>iso(d));
+      const by = new Map();
+      for(const r of rows){
+        if(!by.has(r.member_id)){
+          by.set(r.member_id, { id:r.member_id, full_name:r.full_name, unit:r.unit||'—', days:Object.fromEntries(dayKeys.map(x=>[x,null])) });
+        }
+        if(r.location) by.get(r.member_id).days[r.work_date] = r.location;
+      }
+
+      cont.innerHTML = renderCalendarGrid([...by.values()], dayKeys);
+    }
+
+    function renderCalendarGrid(rows, days){
+      const header = `
+        <div class="cal-head">
+          <div class="cell head">Miembro</div>
+          ${days.map(d=>`<div class="cell head">${fmtDay(d)}</div>`).join('')}
+        </div>`;
+      const body = rows.map(r=>`
+        <div class="cal-row">
+          <div class="cell member">
+            <div class="member-name">${r.full_name}</div>
+            <div class="member-unit">${r.unit}</div>
+          </div>
+          ${days.map(d=>`
+            <button class="cell day" data-member-id="${r.id}" data-date="${d}">
+              ${pill(r.days[d])}
+            </button>`).join('')}
+        </div>`).join('');
+      return header + body;
+    }
+
+    document.addEventListener('click', async (e)=>{
+      const btn = e.target.closest('.cell.day'); if(!btn) return;
+      const id = btn.dataset.memberId, d = btn.dataset.date;
+      const currentText = btn.textContent.trim();
+      const next = currentText==='Casa' ? 'office' : currentText==='Oficina' ? 'home' : 'home';
+      const { error } = await sb.from('attendance').upsert({
+        org_id: state.orgId, member_id:id, work_date:d, location: next
+      }, { onConflict: 'org_id,member_id,work_date' });
+      if(error){ alert('No se pudo marcar: '+error.message); return; }
+      loadCalendar();
+      if($('#viewDashboard').style.display!=='none') loadDashboard();
+    });
+
+    // ================== EQUIPOS ==================
+    $('#btnCreate').onclick = async ()=>{
+      if(!state.orgId) return alert('No hay organización');
+      const name = $('#inName').value.trim();
+      const email= $('#inEmail').value.trim() || null;
+      const unit = $('#inUnit').value.trim() || null;
+      if(!name) return alert('Nombre es requerido');
+      const { error } = await sb.from('team_members').insert({
+        org_id: state.orgId, full_name:name, email, unit, active:true
+      });
+      if(error) return alert('Error creando miembro: '+error.message);
+      $('#inName').value=''; $('#inEmail').value=''; $('#inUnit').value='';
+      await loadMembers();
+      alert('Miembro creado');
+    };
+    $('#btnRefreshMembers').onclick = ()=>loadMembers();
+
+    async function loadMembers(){
+      const q = $('#inFilter').value.trim();
+      const body = $('#membersBody'); body.innerHTML='';
+      let req = sb.from('team_members').select('id, full_name, unit, email, active').eq('org_id', state.orgId).order('full_name');
+      if(q) req = req.ilike('full_name', `%${q}%`);
+      const { data, error } = await req;
+      if(error){ body.innerHTML = `<tr class="tr"><td class="td" colspan="5">${error.message}</td></tr>`; return; }
+      if(!data.length){ body.innerHTML = `<tr class="tr"><td class="td" colspan="5">—</td></tr>`; return; }
+
+      for(const m of data){
+        const tr = document.createElement('tr'); tr.className='tr';
+        tr.innerHTML = `
+          <td class="td">${m.full_name}</td>
+          <td class="td">${m.unit||'—'}</td>
+          <td class="td">${m.email||'—'}</td>
+          <td class="td">${m.active?'Sí':'No'}</td>
+          <td class="td">
+            <button class="btn" data-act="toggle" data-id="${m.id}">${m.active?'Desactivar':'Activar'}</button>
+          </td>`;
+        body.appendChild(tr);
+      }
+    }
+
+    document.addEventListener('click', async (e)=>{
+      const b = e.target.closest('button[data-act="toggle"]'); if(!b) return;
+      const id = b.dataset.id;
+      const { data:cur } = await sb.from('team_members').select('active').eq('id', id).maybeSingle();
+      const { error } = await sb.from('team_members').update({ active: !cur?.active }).eq('id', id);
+      if(error) return alert('No se pudo actualizar: '+error.message);
+      loadMembers();
+    });
+
+    // ================== UTILS ==================
+    function iso(d){ const x=new Date(d); x.setHours(0,0,0,0); return x.toISOString().slice(0,10); }
+    function fmtDate(d){ const dd = (d instanceof Date)? d : new Date(d); return dd.toLocaleDateString('es-CO',{weekday:'short', day:'2-digit', month:'2-digit'}).replace('.',''); }
+    function fmtDay(isoStr){ return fmtDate(new Date(isoStr)); }
+    function rangeDays(from,to){ const out=[]; const d=new Date(from); while(d<=to){ out.push(new Date(d)); d.setDate(d.getDate()+1); } return out; }
+    function pill(loc){ if(loc==='home') return `<span class="pill home">Casa</span>`; if(loc==='office') return `<span class="pill office">Oficina</span>`; return `<span class="pill muted">—</span>`; }
+
+    function firstDayOfMonth(d){ const x=new Date(d); x.setDate(1); x.setHours(0,0,0,0); return x; }
+    function lastDayOfMonth(d){ const x=new Date(d); x.setMonth(x.getMonth()+1); x.setDate(0); x.setHours(0,0,0,0); return x; }
+  </script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Asistencia — Calendario</title>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    :root { --bg:#0b1220; --panel:#111a2b; --muted:#7a8aa0; --text:#e8eef7; --line:#1e2a3f; --brand:#7c4dff; --chip:#1f2a44; }
+    body{margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial}
+    .wrap{max-width:1100px;margin:32px auto;padding:0 16px}
+    .nav{display:flex;gap:8px;margin-bottom:16px;align-items:center}
+    .nav a{padding:8px 12px;border-radius:10px;background:#0e1627;border:1px solid var(--line);text-decoration:none;color:var(--text);opacity:.9}
+    .nav a.active{outline:2px solid var(--brand)}
+    .range{display:flex;gap:8px;align-items:center;margin:10px 0}
+    .btn{padding:8px 12px;border-radius:10px;background:#0e1627;border:1px solid var(--line);color:var(--text);cursor:pointer}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px}
+    table{width:100%;border-collapse:collapse}
+    th,td{border-top:1px solid var(--line);padding:10px 12px;font-size:14px;text-align:center}
+    th:first-child,td:first-child{text-align:left}
+    .chip{display:inline-block;padding:2px 8px;border-radius:999px;background:var(--chip);font-size:12px;color:#cbd5e1}
+    .home{background:#0b2a18;color:#86efac;border:1px solid #14532d}
+    .office{background:#102a43;color:#93c5fd;border:1px solid #1e3a8a}
+    .muted{opacity:.6}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="nav">
+      <strong style="margin-right:8px">📅 Control de Asistencia</strong>
+      <a href="index.html">Dashboard</a>
+      <a class="active" href="calendar.html">Calendario</a>
+      <a href="team.html">Equipos</a>
+      <span id="sessionChip" class="chip" style="margin-left:auto"></span>
+      <button id="logoutBtn" class="btn">Salir</button>
+    </div>
+
+    <div class="range">
+      <button id="prevBtn" class="btn">⟵ Semana anterior</button>
+      <div id="weekTitle" style="font-weight:600"></div>
+      <button id="nextBtn" class="btn">Semana siguiente ⟶</button>
+      <input id="filterBox" placeholder="Filtrar miembro/unidad..." class="btn" style="margin-left:auto;min-width:260px"/>
+    </div>
+
+    <div class="card">
+      <table id="grid">
+        <thead id="thead"></thead>
+        <tbody id="tbody"><tr><td class="muted">Cargando…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // Config
+    const SUPABASE_URL = "https://tkrlcuqbujzwqhweblto.supabase.co";
+    const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRrcmxjdXFidWp6d3Fod2VibHRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5MTUzODIsImV4cCI6MjA3MDQ5MTM4Mn0.PjwSfBreunYD1RyiOUeCzJKIug7Wc7YSaqZFzMJXCxg";
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    let me=null, myOrg=null, members=[], records=[];
+    let weekStart = startOfWeek(new Date()); // lunes
+
+    const fmt = (d)=> new Date(d).toLocaleDateString('es-CO',{weekday:'short',month:'2-digit',day:'2-digit'});
+    function startOfWeek(d){ const x=new Date(d); const day=(x.getDay()+6)%7; x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x; }
+    function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+    function toISO(d){ const x=new Date(d); x.setHours(0,0,0,0); return x.toISOString().slice(0,10); }
+
+    (async function init(){
+      const { data:{user} } = await sb.auth.getUser();
+      if(!user){ window.location.href="index.html"; return; }
+      me = user;
+      document.getElementById('sessionChip').textContent = user.email;
+      document.getElementById('logoutBtn').onclick = async()=>{ await sb.auth.signOut(); window.location.href="index.html"; };
+
+      const { data: prof, error } = await sb.from('profiles').select('org_id').eq('id', user.id).maybeSingle();
+      if(error || !prof){ alert("Error perfil/Org"); return; }
+      myOrg = prof.org_id;
+
+      document.getElementById('prevBtn').onclick = ()=>{ weekStart = addDays(weekStart,-7); refresh(); };
+      document.getElementById('nextBtn').onclick = ()=>{ weekStart = addDays(weekStart, 7); refresh(); };
+      document.getElementById('filterBox').oninput = render;
+
+      await refresh();
+    })();
+
+    async function refresh(){
+      // rango de 7 días
+      const days = [...Array(7)].map((_,i)=> addDays(weekStart,i));
+      const from = toISO(days[0]);
+      const to = toISO(days[6]);
+      document.getElementById('weekTitle').textContent =
+        `${days[0].toLocaleDateString('es-CO',{weekday:'short',month:'2-digit',day:'2-digit'})} → ${days[6].toLocaleDateString('es-CO',{weekday:'short',month:'2-digit',day:'2-digit'})}`;
+
+      // miembros activos de mi org
+      const { data: m } = await sb.from('team_members')
+        .select('id, full_name, unit, is_active')
+        .eq('org_id', myOrg)
+        .order('full_name',{ascending:true});
+      members = (m||[]).filter(x => x.is_active !== false);
+
+      // asistencia del rango
+      const { data: rec } = await sb.from('attendance')
+        .select('member_id, work_date, location')
+        .eq('org_id', myOrg)
+        .gte('work_date', from).lte('work_date', to);
+      records = rec || [];
+
+      render();
+    }
+
+    function render(){
+      const days = [...Array(7)].map((_,i)=> addDays(weekStart,i));
+      // cabecera
+      document.getElementById('thead').innerHTML = `
+        <tr>
+          <th>Miembro</th>
+          ${days.map(d=>`<th>${fmt(d)}</th>`).join('')}
+        </tr>
+      `;
+
+      const q = (document.getElementById('filterBox').value||'').toLowerCase();
+      const rows = members.filter(m => (m.full_name||'').toLowerCase().includes(q) || (m.unit||'').toLowerCase().includes(q));
+
+      if(!rows.length){ document.getElementById('tbody').innerHTML = `<tr><td class="muted">Sin miembros</td></tr>`; return; }
+
+      const byKey = new Map(records.map(r => [r.member_id+'|'+r.work_date, r.location]));
+
+      document.getElementById('tbody').innerHTML = rows.map(m=>{
+        const cells = days.map(d=>{
+          const iso = toISO(d);
+          const loc = byKey.get(m.id+'|'+iso);
+          if(!loc) return `<td class="muted">—</td>`;
+          if(loc==='home') return `<td><span class="chip home">Casa</span></td>`;
+          return `<td><span class="chip office">Oficina</span></td>`;
+        }).join('');
+        return `<tr><td>${m.full_name} ${m.unit?('<span class="chip" style="margin-left:6px">'+m.unit+'</span>'):''}</td>${cells}</tr>`;
+      }).join('');
+    }
+  </script>
+</body>
+</html>

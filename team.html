@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Asistencia — Equipos</title>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    :root { --bg:#0b1220; --panel:#111a2b; --muted:#7a8aa0; --text:#e8eef7; --line:#1e2a3f; --brand:#7c4dff; --ok:#22c55e; --warn:#eab308; --chip:#1f2a44; }
+    body{margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial}
+    .wrap{max-width:1000px;margin:32px auto;padding:0 16px}
+    .nav{display:flex;gap:8px;margin-bottom:16px;align-items:center}
+    .nav a{padding:8px 12px;border-radius:10px;background:#0e1627;border:1px solid var(--line);text-decoration:none;color:var(--text);opacity:.9}
+    .nav a.active{outline:2px solid var(--brand)}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;margin:14px 0;overflow:hidden}
+    .card h3{margin:0;padding:14px 16px;border-bottom:1px solid var(--line);font-size:16px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 16px}
+    input,select,button{background:#0e1627;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px}
+    button{background:var(--brand);border-color:transparent;cursor:pointer}
+    button.ghost{background:#0e1627;border:1px solid var(--line)}
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{border-top:1px solid var(--line);padding:10px 12px;font-size:14px}
+    .badge{display:inline-block;padding:2px 8px;border-radius:999px;background:var(--chip);font-size:12px;color:#cbd5e1}
+    .pill{padding:2px 8px;border-radius:999px;font-size:12px}
+    .pill.ok{background:#0b2a18;color:#86efac;border:1px solid #14532d}
+    .pill.off{background:#1f2937;color:#9ca3af;border:1px solid #334155}
+    .footer{opacity:.6;font-size:12px;padding:12px 4px;text-align:center}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="nav">
+      <strong style="margin-right:8px">📊 Control de Asistencia</strong>
+      <a href="index.html">Dashboard</a>
+      <a href="calendar.html">Calendario</a>
+      <a class="active" href="team.html">Equipos</a>
+      <span id="sessionChip" class="badge" style="margin-left:auto"></span>
+      <button id="logoutBtn" class="ghost">Salir</button>
+    </div>
+
+    <div class="card">
+      <h3>Crear miembro</h3>
+      <div class="row">
+        <input id="fullName" placeholder="Nombre completo" style="flex:2" />
+        <input id="email" placeholder="Email (opcional)" style="flex:2" />
+        <input id="unit" placeholder="Unidad/Área (opcional)" style="flex:1" />
+        <button id="createBtn">Crear</button>
+      </div>
+      <div class="row" style="padding-top:0;color:var(--muted)">Los miembros no necesitan cuenta. Se ligan a tu organización y podrás marcar su asistencia.</div>
+    </div>
+
+    <div class="card">
+      <h3>Miembros</h3>
+      <div class="row" style="padding-top:8px">
+        <input id="filterBox" placeholder="Filtrar por nombre/unidad..." style="flex:1" />
+        <button id="refreshBtn" class="ghost">Actualizar</button>
+      </div>
+      <table class="table" id="membersTable">
+        <thead>
+          <tr>
+            <th>Nombre</th><th>Unidad</th><th>Email</th><th>Estado</th><th style="width:160px">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="membersBody"><tr><td colspan="5" style="opacity:.7">—</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Marcar asistencia de HOY <span id="todayLabel" class="badge" style="margin-left:8px"></span></h3>
+      <div class="row">
+        <select id="memberSelect" style="flex:2"></select>
+        <button id="markHome">Marcar Casa</button>
+        <button id="markOffice" class="ghost">Marcar Oficina</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Registros recientes</h3>
+      <table class="table" id="recentTable">
+        <thead><tr><th>Miembro</th><th>Fecha</th><th>Ubicación</th></tr></thead>
+        <tbody id="recentBody"><tr><td colspan="3" style="opacity:.7">—</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="footer">© Tu app de asistencia</div>
+  </div>
+
+  <script>
+    // 1) Configura tus credenciales:
+    const SUPABASE_URL = "https://tkrlcuqbujzwqhweblto.supabase.co";
+    const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRrcmxjdXFidWp6d3Fod2VibHRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5MTUzODIsImV4cCI6MjA3MDQ5MTM4Mn0.PjwSfBreunYD1RyiOUeCzJKIug7Wc7YSaqZFzMJXCxg";
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    // 2) Estado:
+    let me = null;       // user auth
+    let myOrg = null;    // org_id
+    let members = [];    // cache de miembros
+
+    // 3) Utilidades:
+    const fmtDate = (d) => new Date(d).toLocaleDateString('es-CO',{weekday:'short',year:'numeric',month:'2-digit',day:'2-digit'});
+    function todayISO(){ const t=new Date(); t.setHours(0,0,0,0); return t.toISOString().slice(0,10); }
+
+    // 4) Init:
+    (async function init(){
+      const { data: { user } } = await sb.auth.getUser();
+      if(!user){ window.location.href = "index.html"; return; }
+      me = user;
+      document.getElementById('sessionChip').textContent = user.email;
+
+      // lee mi org desde profiles
+      const { data: prof, error } = await sb.from('profiles').select('org_id, full_name').eq('id', user.id).maybeSingle();
+      if(error){ alert("Error leyendo perfil: "+error.message); return; }
+      if(!prof){ alert("No existe fila en profiles para tu usuario."); return; }
+      myOrg = prof.org_id;
+
+      document.getElementById('todayLabel').textContent = fmtDate(new Date());
+
+      // hooks UI
+      document.getElementById('logoutBtn').onclick = async() => { await sb.auth.signOut(); window.location.href="index.html"; };
+      document.getElementById('createBtn').onclick = handleCreate;
+      document.getElementById('refreshBtn').onclick = loadMembers;
+      document.getElementById('filterBox').oninput = renderMembers;
+      document.getElementById('markHome').onclick = () => markToday('home');
+      document.getElementById('markOffice').onclick = () => markToday('office');
+
+      await loadMembers();
+      await loadRecent();
+    })();
+
+    // 5) Cargar miembros
+    async function loadMembers(){
+      const { data, error } = await sb
+        .from('team_members')
+        .select('id, full_name, email, unit, is_active')
+        .eq('org_id', myOrg)
+        .order('full_name',{ascending:true});
+      if(error){ alert("Error listando miembros: "+error.message); return; }
+      members = data || [];
+      renderMembers();
+      renderMemberSelect();
+    }
+
+    function renderMembers(){
+      const body = document.getElementById('membersBody');
+      const q = (document.getElementById('filterBox').value||'').toLowerCase();
+      const list = members.filter(m => (m.full_name||'').toLowerCase().includes(q) || (m.unit||'').toLowerCase().includes(q));
+      if(!list.length){ body.innerHTML = `<tr><td colspan="5" style="opacity:.7">Sin miembros</td></tr>`; return; }
+      body.innerHTML = list.map(m => `
+        <tr>
+          <td>${m.full_name||'—'}</td>
+          <td><span class="badge">${m.unit||'—'}</span></td>
+          <td>${m.email||'—'}</td>
+          <td>${m.is_active ? '<span class="pill ok">Activo</span>' : '<span class="pill off">Inactivo</span>'}</td>
+          <td>
+            <button class="ghost" onclick="toggleActive('${m.id}', ${m.is_active ? 'false':'true'})">${m.is_active?'Desactivar':'Activar'}</button>
+            <button class="ghost" onclick="delMember('${m.id}')">Eliminar</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderMemberSelect(){
+      const sel = document.getElementById('memberSelect');
+      const actives = members.filter(m=>m.is_active!==false);
+      sel.innerHTML = actives.map(m => `<option value="${m.id}">${m.full_name} ${m.unit?('— '+m.unit):''}</option>`).join('');
+    }
+
+    // 6) Crear miembro (sin columna "active" — usamos is_active si existe; si no, ignora)
+    async function handleCreate(){
+      const full_name = document.getElementById('fullName').value.trim();
+      const email = document.getElementById('email').value.trim() || null;
+      const unit = document.getElementById('unit').value.trim() || null;
+      if(!full_name){ alert("Escribe un nombre"); return; }
+
+      const { error } = await sb.from('team_members').insert([{ org_id: myOrg, full_name, email, unit }]);
+      if(error){ alert("Error creando miembro: "+error.message); return; }
+
+      document.getElementById('fullName').value = '';
+      document.getElementById('email').value = '';
+      document.getElementById('unit').value = '';
+      await loadMembers();
+    }
+
+    async function toggleActive(id, newVal){
+      const { error } = await sb.from('team_members').update({ is_active: newVal }).eq('id', id).eq('org_id', myOrg);
+      if(error){ alert("Error cambiando estado: "+error.message); return; }
+      await loadMembers();
+    }
+
+    async function delMember(id){
+      if(!confirm("¿Eliminar este miembro?")) return;
+      const { error } = await sb.from('team_members').delete().eq('id', id).eq('org_id', myOrg);
+      if(error){ alert("Error eliminando: "+error.message); return; }
+      await loadMembers();
+    }
+
+    // 7) Marcar asistencia HOY
+    async function markToday(where){
+      const member_id = document.getElementById('memberSelect').value;
+      if(!member_id){ alert("No hay miembro seleccionado"); return; }
+      const work_date = todayISO();
+
+      // Upsert por (org_id, member_id, work_date) — asegúrate que exista unique index en DB
+      const { error } = await sb
+        .from('attendance')
+        .upsert([{ org_id: myOrg, member_id, work_date, location: where }], { onConflict: 'org_id,member_id,work_date' });
+
+      if(error){ alert("Error marcando asistencia: "+error.message); return; }
+      await loadRecent();
+      alert("Guardado ✓");
+    }
+
+    // 8) Recientes
+    async function loadRecent(){
+      const { data, error } = await sb
+        .from('attendance')
+        .select('work_date, location, team_members(full_name, unit)')
+        .eq('org_id', myOrg)
+        .order('work_date', { ascending:false })
+        .limit(20);
+      if(error){ alert("Error listando recientes: "+error.message); return; }
+      const body = document.getElementById('recentBody');
+      if(!data?.length){ body.innerHTML = `<tr><td colspan="3" style="opacity:.7">—</td></tr>`; return; }
+      body.innerHTML = data.map(r => `
+        <tr>
+          <td>${r.team_members?.full_name || '—'} ${r.team_members?.unit?('<span class="badge" style="margin-left:6px">'+r.team_members.unit+'</span>'):''}</td>
+          <td>${fmtDate(r.work_date)}</td>
+          <td>${r.location==='home' ? '<span class="badge">Casa</span>' : '<span class="badge">Oficina</span>'}</td>
+        </tr>
+      `).join('');
+    }
+  </script>
+</body>
+</html>
