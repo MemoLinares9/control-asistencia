@@ -19,32 +19,32 @@
 
     /* NAV */
     .top{display:flex;align-items:center;gap:8px;margin-bottom:16px}
-    .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:22px}
+    .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:22px;color:var(--text)}
     .dot{width:14px;height:14px;border-radius:4px;background:linear-gradient(135deg,#22d3ee,#60a5fa)}
     .tabs{display:flex;gap:8px;margin-left:16px}
     .tab{background:var(--panel);border:1px solid var(--line);padding:10px 14px;border-radius:10px;cursor:pointer;color:var(--text)}
     .tab.active{outline:2px solid #3b82f6}
-    .session{margin-left:auto;opacity:.85;white-space:nowrap}
+    .session{margin-left:auto;opacity:.85;color:var(--text)}
     .btn{background:#1f2937;border:1px solid var(--line);color:var(--text);padding:8px 12px;border-radius:10px;cursor:pointer}
     .btn:hover{filter:brightness(1.1)}
-    button{color:var(--text)} /* por si acaso el navegador impone negro */
+    .btn.primary{background:#1e3a8a;border-color:#1e3a8a}
 
     /* CARDS / TABLES */
     .grid{display:grid;gap:12px}
     .grid.cols-2{grid-template-columns:1fr 1fr}
     .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
-    .title{font-weight:700;margin:0 0 10px 0}
-    .muted{opacity:.75}
-    .kpi{font-size:34px;font-weight:800;margin-top:8px}
+    .title{font-weight:700;margin:0 0 10px 0;color:var(--text)}
+    .muted{opacity:.8;color:var(--text)}
+    .kpi{font-size:34px;font-weight:800;margin-top:8px;color:var(--text)}
     .table{width:100%;border-collapse:separate;border-spacing:0 8px}
-    .th{opacity:.8;font-weight:700}
+    .th{opacity:.9;font-weight:700;color:var(--text)}
     .tr{background:var(--muted);border:1px solid var(--line);border-radius:10px}
-    .td,.th{padding:10px 12px}
+    .td,.th{padding:10px 12px;color:var(--text)}
     .td:first-child,.th:first-child{border-top-left-radius:10px;border-bottom-left-radius:10px}
     .td:last-child,.th:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px}
 
     /* Pills */
-    .pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:.85rem;background:var(--pill);border:1px solid var(--pill-b)}
+    .pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:.85rem;background:var(--pill);border:1px solid var(--pill-b);color:var(--text)}
     .pill.home{background:var(--home-bg);color:var(--home-fg);border-color:#1f3a5f}
     .pill.office{background:var(--office-bg);color:var(--office-fg);border-color:#1b4d3a}
     .pill.muted{opacity:.7}
@@ -52,26 +52,28 @@
     /* Calendar */
     .calendar{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px}
     .cal-head,.cal-row{display:grid;grid-template-columns:260px repeat(7,1fr);gap:8px;align-items:center}
-    .cell{background:var(--muted);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}
+    .cell{background:var(--muted);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;color:var(--text)}
     .cell.head{background:#0c1526;font-weight:700}
     .cell.member{text-align:left}
     .cell.day{cursor:pointer}
-    .member-name{font-weight:700}
-    .member-unit{opacity:.75;font-size:.9rem}
+    .member-name{font-weight:700;color:var(--text)}
+    .member-unit{opacity:.85;font-size:.9rem;color:var(--text)}
 
-    .footer{margin-top:26px;text-align:center;opacity:.5}
+    .footer{margin-top:26px;text-align:center;opacity:.6;color:var(--text)}
     .error{color:var(--bad)}
 
-    /* Dashboard toolbar (solo etiqueta de semana) */
-    .toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
-
-    /* Inputs generales */
-    input,select{background:var(--muted);border:1px solid var(--line);color:var(--text);padding:10px;border-radius:10px;outline:none}
+    /* Login panel */
+    .auth{max-width:480px;margin:80px auto;padding:16px}
+    .row{display:flex;gap:8px;flex-wrap:wrap}
+    input,select{background:#0f172a;border:1px solid var(--line);border-radius:10px;padding:10px;color:var(--text)}
+    input::placeholder{color:#94a3b8}
+    .hint{font-size:.9rem;opacity:.85;color:var(--text)}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <!-- Header -->
+
+    <!-- ============== HEADER ============== -->
     <div class="top">
       <div class="logo"><span class="dot"></span> Control de Asistencia</div>
       <div class="tabs">
@@ -83,29 +85,49 @@
       <button class="btn" id="btnLogout">Salir</button>
     </div>
 
-    <!-- DASHBOARD -->
+    <!-- ============== LOGIN (email/contraseña) ============== -->
+    <section id="viewAuth" style="display:none">
+      <div class="card auth">
+        <h3 class="title">Inicia sesión</h3>
+        <div class="row">
+          <input id="authEmail" type="email" placeholder="Correo" style="flex:1 1 220px">
+          <input id="authPass" type="password" placeholder="Contraseña" style="flex:1 1 160px">
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn primary" id="btnDoLogin">Entrar</button>
+          <button class="btn" id="btnDoSignup">Crear cuenta</button>
+        </div>
+        <div class="hint" style="margin-top:10px">
+          Sugerencia: si no quieres confirmar por correo, desactiva <em>“Confirm email”</em> en Supabase &rarr; Auth &rarr; Providers &rarr; Email.
+        </div>
+        <div id="authError" class="error" style="margin-top:10px;display:none"></div>
+      </div>
+    </section>
+
+    <!-- ============== DASHBOARD ============== -->
     <section id="viewDashboard" class="grid">
-      <div class="toolbar card">
+      <div class="card" style="display:flex;align-items:center;justify-content:space-between">
         <div class="muted" id="weekRange">Semana</div>
+        <div class="muted" id="orgBadge">Org: —</div>
       </div>
 
       <div class="grid cols-2">
         <div class="card">
           <h3 class="title">Porcentaje Casa (semana)</h3>
-          <div class="muted" id="kpiHomeDesc">—</div>
+          <div class="muted">Semana actual</div>
           <div class="kpi" id="kpiHome">—</div>
         </div>
         <div class="card">
           <h3 class="title">Porcentaje Oficina (semana)</h3>
-          <div class="muted" id="kpiOfficeDesc">—</div>
+          <div class="muted">Semana actual</div>
           <div class="kpi" id="kpiOffice">—</div>
         </div>
       </div>
 
       <div class="card">
         <h3 class="title">Resumen por unidad (mes)</h3>
-        <div class="muted" id="monthLabel" style="margin:6px 0 10px 0">—</div>
-        <table class="table">
+        <div class="muted" id="monthLabel">—</div>
+        <table class="table" id="tblUnits">
           <thead>
             <tr class="th tr">
               <th class="th">Unidad</th>
@@ -114,12 +136,12 @@
               <th class="th">Registros</th>
             </tr>
           </thead>
-          <tbody id="unitBody"></tbody>
+          <tbody id="unitsBody"></tbody>
         </table>
       </div>
     </section>
 
-    <!-- CALENDARIO -->
+    <!-- ============== CALENDARIO ============== -->
     <section id="viewCalendar" style="display:none">
       <div class="card" style="display:flex;gap:8px;align-items:center;justify-content:space-between">
         <div>
@@ -132,23 +154,23 @@
       <div class="footer">© Tu app de asistencia</div>
     </section>
 
-    <!-- EQUIPOS (crear y listar) -->
+    <!-- ============== EQUIPOS ============== -->
     <section id="viewTeams" style="display:none" class="grid">
       <div class="card">
         <h3 class="title">Crear miembro</h3>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <input id="inName" placeholder="Nombre completo" class="cell" style="flex:2;min-width:240px">
-          <input id="inEmail" placeholder="Email (opcional)" class="cell" style="flex:2;min-width:220px">
-          <input id="inUnit" placeholder="Unidad/Área (opcional)" class="cell" style="flex:1;min-width:180px">
-          <button class="btn" id="btnCreate">Crear</button>
+        <div class="row">
+          <input id="inName" placeholder="Nombre completo" style="flex:2;min-width:240px">
+          <input id="inEmail" placeholder="Email (opcional)" style="flex:2;min-width:220px">
+          <input id="inUnit" placeholder="Unidad/Área (opcional)" style="flex:1;min-width:180px">
+          <button class="btn primary" id="btnCreate">Crear</button>
         </div>
-        <div class="muted" style="margin-top:8px">Los miembros no necesitan cuenta. Quedan ligados a tu organización.</div>
+        <div class="muted" style="margin-top:8px">Los miembros no necesitan cuenta. Quedan ligados a tu organización y podrás marcar su asistencia.</div>
       </div>
 
       <div class="card">
         <h3 class="title">Miembros</h3>
-        <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
-          <input id="inFilter" placeholder="Filtrar por nombre/unidad..." class="cell" style="flex:1;min-width:240px">
+        <div class="row" style="margin-bottom:8px;align-items:center">
+          <input id="inFilter" placeholder="Filtrar por nombre/unidad..." style="flex:1;min-width:240px">
           <button class="btn" id="btnRefreshMembers">Actualizar</button>
         </div>
         <table class="table">
@@ -177,172 +199,166 @@
     const state = {
       user: null,
       orgId: null,
-      weekStart: null,  // Monday
+      weekStart: null, // Monday
     };
 
-    // ================== NAV ==================
+    // Helpers DOM
     const $ = (sel)=>document.querySelector(sel);
     const show = id => {
-      ['viewDashboard','viewCalendar','viewTeams'].forEach(v=>$( '#' + v).style.display = (v===id?'':'none'));
+      ['viewAuth','viewDashboard','viewCalendar','viewTeams'].forEach(v=>{
+        const el = $('#'+v);
+        if(!el) return;
+        el.style.display = (v===id?'':'none');
+      });
+      // marcar pestañas (solo cuando estamos logueados)
       ['tabDash','tabCal','tabTeam'].forEach(t=>$('#'+t).classList.remove('active'));
       if(id==='viewDashboard') $('#tabDash').classList.add('active');
       if(id==='viewCalendar')  $('#tabCal').classList.add('active');
       if(id==='viewTeams')     $('#tabTeam').classList.add('active');
     };
 
-    $('#tabDash').onclick = ()=>{ show('viewDashboard'); loadDashboard(); };
-    $('#tabCal').onclick  = ()=>{ show('viewCalendar');  loadCalendar();  };
-    $('#tabTeam').onclick = ()=>{ show('viewTeams');     loadMembers();   };
+    // ================== AUTH (email/contraseña) ==================
+    $('#btnDoLogin').onclick = async ()=>{
+      const email = $('#authEmail').value.trim();
+      const pass  = $('#authPass').value;
+      setAuthError('');
+      if(!email || !pass) return setAuthError('Escribe correo y contraseña.');
+      const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+      if(error){ setAuthError('No se pudo iniciar sesión: '+error.message); return; }
+      await bootstrap();
+    };
+    $('#btnDoSignup').onclick = async ()=>{
+      const email = $('#authEmail').value.trim();
+      const pass  = $('#authPass').value;
+      setAuthError('');
+      if(!email || !pass) return setAuthError('Escribe correo y contraseña.');
+      const { error } = await sb.auth.signUp({ email, password: pass });
+      if(error){ setAuthError('No se pudo crear la cuenta: '+error.message); return; }
+      // Si Confirm email está OFF, el usuario ya queda activo. Si está ON, deberá confirmar por correo.
+      alert('Cuenta creada. Si tu proyecto requiere confirmación, revisa tu correo.');
+      await bootstrap();
+    };
+    function setAuthError(msg){
+      const box = $('#authError');
+      if(!msg){ box.style.display='none'; box.textContent=''; }
+      else { box.textContent = msg; box.style.display='block'; }
+    }
 
-    $('#btnLogout').onclick = async()=>{ await sb.auth.signOut(); location.reload(); };
+    $('#btnLogout').onclick = async()=>{
+      await sb.auth.signOut();
+      state.user = null;
+      $('#sessionInfo').textContent = 'Sesión: —';
+      show('viewAuth');
+    };
+
+    // ================== NAV ==================
+    $('#tabDash').onclick = async ()=>{ show('viewDashboard'); await loadDashboard(); };
+    $('#tabCal').onclick  = async ()=>{ show('viewCalendar');  await loadCalendar();  };
+    $('#tabTeam').onclick = async ()=>{ show('viewTeams');     await loadMembers();   };
 
     // ================== INIT ==================
-    init();
-    async function init(){
+    bootstrap();
+    async function bootstrap(){
+      // usuario actual
       const { data:{ user } } = await sb.auth.getUser();
       if(!user){
-        const email = prompt('Ingresa tu correo para Magic Link (o deja vacío para ver demo):');
-        if(email){
-          const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.href }});
-          alert(error ? 'No se pudo enviar el Magic Link: '+error.message : 'Revisa tu correo y abre el enlace.');
-        } else {
-          alert('Sesión demo. Para datos reales, entra con Magic Link.');
-        }
-      } else {
-        state.user = user;
-        $('#sessionInfo').textContent = 'Sesión: ' + (user.email || user.id);
+        show('viewAuth');
+        return;
       }
+      state.user = user;
+      $('#sessionInfo').textContent = 'Sesión: ' + (user.email || user.id);
 
-      // Cargar org desde profiles
-      if(state.user){
-        const { data, error } = await sb.from('profiles').select('org_id').eq('id', state.user.id).maybeSingle();
-        if(error){ console.error(error); }
-        state.orgId = data?.org_id || null;
-      }
+      // org del perfil
+      const { data:prof } = await sb.from('profiles').select('org_id').eq('id', user.id).maybeSingle();
+      state.orgId = prof?.org_id || null;
+      $('#orgBadge').textContent = state.orgId ? ('Org: '+state.orgId) : 'Org: —';
 
-      // Semana actual (lunes)
+      // semana actual (lunes)
       const today = new Date();
       const monday = new Date(today);
-      monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+      monday.setDate(today.getDate() - ((today.getDay()+6)%7));
       state.weekStart = monday;
 
-      updateWeekRangeLabel();
-
-      // Render inicial
+      // vista inicial
       show('viewDashboard');
       await loadDashboard();
     }
 
     // ================== DASHBOARD ==================
-    function updateWeekRangeLabel() {
-      const ws = weekStart();
-      const we = weekEnd();
-      const fmt = (dd) => new Date(dd).toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit'});
-      const el = $('#weekRange');
-      if (el) el.textContent = `Semana del ${fmt(ws)} al ${fmt(we)}`;
-    }
-
     async function loadDashboard(){
-      if(!state.orgId){ setKpis(null); drawUnitSummary([]); return; }
+      // etiquetas de rango semanal y mes
+      const ws = weekStart(), we = weekEnd();
+      $('#weekRange').textContent = `Semana del ${fmtDate(ws)} al ${fmtDate(we)}`;
+      const ym = new Date(ws.getFullYear(), ws.getMonth(), 1);
+      $('#monthLabel').textContent = `${ym.getMonth()+1}/${ym.getFullYear()}`;
 
-      // KPIs de semana
-      const { data:att, error:e1 } = await sb
+      if(!state.orgId){ setKpis(null); drawUnits([]); return; }
+
+      // KPIs semana por org
+      const { data:attW, error:e1 } = await sb
         .from('attendance')
-        .select('location, member_id, work_date')
-        .gte('work_date', iso(weekStart()))
-        .lte('work_date', iso(weekEnd()))
+        .select('location')
+        .gte('work_date', iso(ws))
+        .lte('work_date', iso(we))
         .eq('org_id', state.orgId)
-        .limit(1000);
-
+        .limit(2000);
       if(e1){ console.error(e1); setKpis(null); }
-      else {
-        const total = att.length || 1;
-        const home  = att.filter(r=>r.location==='home').length;
-        const office= att.filter(r=>r.location==='office').length;
+      else{
+        const total = attW.length || 1;
+        const home = attW.filter(r=>r.location==='home').length;
+        const office= attW.filter(r=>r.location==='office').length;
         setKpis({ home: Math.round(home*100/total), office: Math.round(office*100/total) });
       }
 
-      // Resumen mensual por unidad
-      await loadMonthlyUnitSummary();
-    }
-
-    function setKpis(x){
-      if(!x){
-        $('#kpiHome').textContent='—'; $('#kpiOffice').textContent='—';
-        $('#kpiHomeDesc').textContent=''; $('#kpiOfficeDesc').textContent='';
-        return;
-      }
-      $('#kpiHome').textContent   = x.home + '%';
-      $('#kpiOffice').textContent = x.office + '%';
-      $('#kpiHomeDesc').textContent = 'Semana actual';
-      $('#kpiOfficeDesc').textContent = 'Semana actual';
-    }
-
-    async function loadMonthlyUnitSummary(){
-      if(!state.orgId){ drawUnitSummary([]); return; }
-      const monthStart = firstDayOfMonth(weekStart());
-      const monthEnd   = lastDayOfMonth(monthStart);
-      $('#monthLabel').textContent = monthStart.toLocaleDateString('es-CO',{year:'numeric',month:'2-digit'});
-
-      const { data:members, error:em } = await sb
-        .from('team_members')
-        .select('id, unit')
-        .eq('org_id', state.orgId);
-      if(em){ console.error(em); drawUnitSummary([]); return; }
-      const unitByMember = new Map(members.map(m=>[m.id, m.unit || '—']));
-
-      const { data:atts, error:ea } = await sb
+      // Resumen por unidad del mes
+      const monthFrom = iso(new Date(ws.getFullYear(), ws.getMonth(), 1));
+      const monthTo   = iso(new Date(ws.getFullYear(), ws.getMonth()+1, 0));
+      const { data:rows, error:e2 } = await sb
         .from('attendance')
-        .select('member_id, location, work_date')
+        .select('location, team_members(unit)')
         .eq('org_id', state.orgId)
-        .gte('work_date', iso(monthStart))
-        .lte('work_date', iso(monthEnd))
+        .gte('work_date', monthFrom)
+        .lte('work_date', monthTo)
         .limit(5000);
-      if(ea){ console.error(ea); drawUnitSummary([]); return; }
-
-      const agg = new Map(); // unit -> {home, office, total}
-      for(const a of atts){
-        const unit = unitByMember.get(a.member_id) || '—';
-        if(!agg.has(unit)) agg.set(unit, {home:0, office:0, total:0});
-        const o = agg.get(unit);
-        if(a.location==='home')   o.home++;
-        else if(a.location==='office') o.office++;
-        o.total++;
-      }
-
-      const rows = [...agg.entries()].map(([unit, v])=>{
-        const total = v.total || 1;
-        return {
-          unit,
-          homePct: Math.round((v.home*100)/total),
-          officePct: Math.round((v.office*100)/total),
-          total: v.total
+      if(e2){ console.error(e2); drawUnits([]); }
+      else{
+        const byUnit = {};
+        for(const r of rows){
+          const u = r.team_members?.unit || '—';
+          if(!byUnit[u]) byUnit[u] = { unit:u, home:0, office:0, total:0 };
+          if(r.location==='home') byUnit[u].home++;
+          else if(r.location==='office') byUnit[u].office++;
+          byUnit[u].total++;
         }
-      }).sort((a,b)=>a.unit.localeCompare(b.unit));
-
-      drawUnitSummary(rows);
-    }
-
-    function drawUnitSummary(rows){
-      const body = $('#unitBody'); body.innerHTML='';
-      if(!rows.length){
-        body.innerHTML = `<tr class="tr"><td class="td" colspan="4">—</td></tr>`;
-        return;
+        const data = Object.values(byUnit).map(x=>{
+          const total = x.total || 1;
+          return { unit:x.unit, pHome:Math.round(x.home*100/total), pOffice:Math.round(x.office*100/total), total:x.total };
+        }).sort((a,b)=>a.unit.localeCompare(b.unit));
+        drawUnits(data);
       }
-      for(const r of rows){
+    }
+    function setKpis(x){
+      if(!x){ $('#kpiHome').textContent='—'; $('#kpiOffice').textContent='—'; return; }
+      $('#kpiHome').textContent = x.home + '%';
+      $('#kpiOffice').textContent = x.office + '%';
+    }
+    function drawUnits(list){
+      const tbody = $('#unitsBody'); tbody.innerHTML='';
+      if(!list.length){ tbody.innerHTML = `<tr class="tr"><td class="td" colspan="4">—</td></tr>`; return; }
+      for(const r of list){
         const tr = document.createElement('tr'); tr.className='tr';
         tr.innerHTML = `
           <td class="td">${r.unit}</td>
-          <td class="td">${r.homePct}%</td>
-          <td class="td">${r.officePct}%</td>
+          <td class="td">${r.pHome}%</td>
+          <td class="td">${r.pOffice}%</td>
           <td class="td">${r.total}</td>`;
-        body.appendChild(tr);
+        tbody.appendChild(tr);
       }
     }
 
     // ================== CALENDARIO ==================
-    $('#btnPrevWeek').onclick = ()=>{ shiftWeek(-7); updateWeekRangeLabel(); loadCalendar(); };
-    $('#btnNextWeek').onclick = ()=>{ shiftWeek(+7); updateWeekRangeLabel(); loadCalendar(); };
+    $('#btnPrevWeek').onclick = ()=>{ shiftWeek(-7); loadCalendar(); };
+    $('#btnNextWeek').onclick = ()=>{ shiftWeek(+7); loadCalendar(); };
 
     function shiftWeek(delta){ const d = weekStart(); d.setDate(d.getDate()+delta); state.weekStart = d; }
     function weekStart(){ return new Date(state.weekStart); }
@@ -356,35 +372,46 @@
 
       if(!state.orgId){ cont.innerHTML = '<div class="error">No hay organización</div>'; return; }
 
-      const days = rangeDays(ws,we);
-      const { data:members, error:em } = await sb.from('team_members')
-        .select('id, full_name, unit, active')
-        .eq('org_id', state.orgId).eq('active', true).order('full_name');
-      if(em){ cont.innerHTML = `<div class="error">${em.message}</div>`; return; }
+      let data=null, err=null;
+      try{
+        const { data:rpc, error } = await sb.rpc('week_attendance', { p_org: state.orgId, p_from: iso(ws), p_to: iso(we) });
+        err = error; data = rpc;
+      }catch(e){ err=e; }
+      if(err){
+        // Fallback local
+        const days = rangeDays(ws,we);
+        const { data:members, error:em } = await sb.from('team_members')
+          .select('id, full_name, unit')
+          .eq('org_id', state.orgId)
+          .eq('active', true)
+          .order('full_name');
+        if(em){ cont.innerHTML = `<div class="error">${em.message}</div>`; return; }
+        const { data:atts, error:ea } = await sb.from('attendance')
+          .select('member_id, work_date, location')
+          .eq('org_id', state.orgId)
+          .gte('work_date', iso(ws)).lte('work_date', iso(we))
+          .limit(2000);
+        if(ea){ cont.innerHTML = `<div class="error">${ea.message}</div>`; return; }
 
-      const { data:atts, error:ea } = await sb.from('attendance')
-        .select('member_id, work_date, location')
-        .eq('org_id', state.orgId).gte('work_date', iso(ws)).lte('work_date', iso(we)).limit(1000);
-      if(ea){ cont.innerHTML = `<div class="error">${ea.message}</div>`; return; }
-
-      const rows = [];
-      for(const m of members){
-        for(const d of days){
-          const hit = atts.find(a=>a.member_id===m.id && a.work_date===iso(d));
-          rows.push({ member_id:m.id, full_name:m.full_name, unit:m.unit||'—', work_date:iso(d), location:hit?.location||null });
+        const rows=[];
+        for(const m of members){
+          for(const d of days){
+            const hit = atts.find(a=>a.member_id===m.id && a.work_date===iso(d));
+            rows.push({ member_id:m.id, full_name:m.full_name, unit:m.unit||'—', work_date:iso(d), location:hit?.location||null });
+          }
         }
+        data = rows;
       }
 
-      const dayKeys = days.map(d=>iso(d));
+      const days = rangeDays(ws,we).map(d=>iso(d));
       const by = new Map();
-      for(const r of rows){
+      for(const r of data){
         if(!by.has(r.member_id)){
-          by.set(r.member_id, { id:r.member_id, full_name:r.full_name, unit:r.unit||'—', days:Object.fromEntries(dayKeys.map(x=>[x,null])) });
+          by.set(r.member_id,{ id:r.member_id, full_name:r.full_name, unit:r.unit||'—', days:Object.fromEntries(days.map(x=>[x,null])) });
         }
         if(r.location) by.get(r.member_id).days[r.work_date] = r.location;
       }
-
-      cont.innerHTML = renderCalendarGrid([...by.values()], dayKeys);
+      cont.innerHTML = renderCalendarGrid([...by.values()], days);
     }
 
     function renderCalendarGrid(rows, days){
@@ -407,17 +434,18 @@
       return header + body;
     }
 
+    // Toggle rápido desde calendario
     document.addEventListener('click', async (e)=>{
       const btn = e.target.closest('.cell.day'); if(!btn) return;
+      if(!state.orgId) return;
       const id = btn.dataset.memberId, d = btn.dataset.date;
-      const currentText = btn.textContent.trim();
-      const next = currentText==='Casa' ? 'office' : currentText==='Oficina' ? 'home' : 'home';
+      const current = btn.textContent.trim();
+      const next = current==='Casa' ? 'office' : current==='Oficina' ? 'home' : 'home';
       const { error } = await sb.from('attendance').upsert({
         org_id: state.orgId, member_id:id, work_date:d, location: next
       }, { onConflict: 'org_id,member_id,work_date' });
       if(error){ alert('No se pudo marcar: '+error.message); return; }
       loadCalendar();
-      if($('#viewDashboard').style.display!=='none') loadDashboard();
     });
 
     // ================== EQUIPOS ==================
@@ -427,9 +455,7 @@
       const email= $('#inEmail').value.trim() || null;
       const unit = $('#inUnit').value.trim() || null;
       if(!name) return alert('Nombre es requerido');
-      const { error } = await sb.from('team_members').insert({
-        org_id: state.orgId, full_name:name, email, unit, active:true
-      });
+      const { error } = await sb.from('team_members').insert({ org_id: state.orgId, full_name:name, email, unit, active:true });
       if(error) return alert('Error creando miembro: '+error.message);
       $('#inName').value=''; $('#inEmail').value=''; $('#inUnit').value='';
       await loadMembers();
@@ -438,14 +464,14 @@
     $('#btnRefreshMembers').onclick = ()=>loadMembers();
 
     async function loadMembers(){
+      if(!state.orgId){ $('#membersBody').innerHTML = `<tr class="tr"><td class="td" colspan="5">—</td></tr>`; return; }
       const q = $('#inFilter').value.trim();
-      const body = $('#membersBody'); body.innerHTML='';
       let req = sb.from('team_members').select('id, full_name, unit, email, active').eq('org_id', state.orgId).order('full_name');
       if(q) req = req.ilike('full_name', `%${q}%`);
       const { data, error } = await req;
+      const body = $('#membersBody'); body.innerHTML='';
       if(error){ body.innerHTML = `<tr class="tr"><td class="td" colspan="5">${error.message}</td></tr>`; return; }
       if(!data.length){ body.innerHTML = `<tr class="tr"><td class="td" colspan="5">—</td></tr>`; return; }
-
       for(const m of data){
         const tr = document.createElement('tr'); tr.className='tr';
         tr.innerHTML = `
@@ -471,13 +497,41 @@
 
     // ================== UTILS ==================
     function iso(d){ const x=new Date(d); x.setHours(0,0,0,0); return x.toISOString().slice(0,10); }
-    function fmtDate(d){ const dd = (d instanceof Date)? d : new Date(d); return dd.toLocaleDateString('es-CO',{weekday:'short', day:'2-digit', month:'2-digit'}).replace('.',''); }
+    function fmtDate(d){
+      const dd = (d instanceof Date)? d : new Date(d);
+      return dd.toLocaleDateString('es-CO',{weekday:'short', day:'2-digit', month:'2-digit'}).replace('.','');
+    }
     function fmtDay(isoStr){ return fmtDate(new Date(isoStr)); }
     function rangeDays(from,to){ const out=[]; const d=new Date(from); while(d<=to){ out.push(new Date(d)); d.setDate(d.getDate()+1); } return out; }
-    function pill(loc){ if(loc==='home') return `<span class="pill home">Casa</span>`; if(loc==='office') return `<span class="pill office">Oficina</span>`; return `<span class="pill muted">—</span>`; }
+    function pill(loc){
+      if(loc==='home')   return `<span class="pill home">Casa</span>`;
+      if(loc==='office') return `<span class="pill office">Oficina</span>`;
+      return `<span class="pill muted">—</span>`;
+    }
+    ...
+  function pill(loc){
+    if(loc==='home') return '<span class="pill home">Casa</span>';
+    if(loc==='office') return '<span class="pill office">Oficina</span>';
+    return '<span class="pill muted"></span>';
+  }
+// Mostrar mensaje al cargar la página
+document.addEventListener('DOMContentLoaded', () => {
+  const msg = document.createElement('div');
+  msg.textContent = "Bienvenido al sistema de control de asistencia";
+  msg.style.textAlign = "center";
+  msg.style.margin = "10px";
+  msg.style.fontWeight = "bold";
+  document.body.prepend(msg);
 
-    function firstDayOfMonth(d){ const x=new Date(d); x.setDate(1); x.setHours(0,0,0,0); return x; }
-    function lastDayOfMonth(d){ const x=new Date(d); x.setMonth(x.getMonth()+1); x.setDate(0); x.setHours(0,0,0,0); return x; }
+  // Ocultar mensaje después de 3 segundos
+  setTimeout(() => {
+    msg.remove();
+  }, 3000);
+  });
+
+</script>
+</body>
+</html>
   </script>
 </body>
 </html>
