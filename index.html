@@ -3,47 +3,43 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Flexibility</title>
+  <title>Flexibility by Systemgroup</title>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
     :root{
       --bg:#0b0f17; --panel:#0f172a; --muted:#111827; --line:#1f2937; --text:#e5e7eb;
       --brand:#7dd3fc; --ok:#86efac; --warn:#fbbf24; --bad:#f87171;
       --pill:#0b1220; --pill-b:#1f2435;
-      --home-bg:#1e293b; --home-fg:#93c5fd; --office-bg:#0f2f24; --office-fg:#86efac;
+      --home-bg:#1e293b; --home-fg:#93c5fd; 
+      --office-bg:#0f2f24; --office-fg:#86efac;
     }
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    a{color:#93c5fd;text-decoration:none} a:hover{text-decoration:underline}
     .wrap{max-width:1100px;margin:36px auto;padding:0 16px}
-    a{color:#93c5fd;text-decoration:none}
-    a:hover{text-decoration:underline}
 
     /* NAV */
-    .top{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+    .top{display:flex;align-items:center;gap:10px;margin-bottom:16px}
     .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:22px;color:var(--text)}
-    .dot{width:14px;height:14px;border-radius:4px;background:linear-gradient(135deg,#22d3ee,#60a5fa)}
     .tabs{display:flex;gap:8px;margin-left:16px}
-    .tab{
-      background:var(--panel);border:1px solid var(--line);
-      padding:10px 14px;border-radius:10px;cursor:pointer;color:var(--text);
-    }
+    .tab{background:var(--panel);border:1px solid var(--line);padding:10px 14px;border-radius:10px;cursor:pointer;color:var(--text)}
     .tab.active{outline:2px solid #3b82f6}
     .session{margin-left:auto;opacity:.85;color:var(--text)}
     .btn{background:#1f2937;border:1px solid var(--line);color:var(--text);padding:8px 12px;border-radius:10px;cursor:pointer}
-    .btn:hover{filter:brightness(1.07)}
+    .btn:hover{filter:brightness(1.1)}
     .btn.primary{background:#1e3a8a;border-color:#1e3a8a}
 
-    /* LAYOUT */
+    /* CARDS / TABLES */
     .grid{display:grid;gap:12px}
     .grid.cols-2{grid-template-columns:1fr 1fr}
     .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
     .title{font-weight:700;margin:0 0 10px 0;color:var(--text)}
-    .muted{opacity:.85;color:var(--text)}
+    .muted{opacity:.8;color:var(--text)}
     .kpi{font-size:34px;font-weight:800;margin-top:8px;color:var(--text)}
     .table{width:100%;border-collapse:separate;border-spacing:0 8px}
+    .th{opacity:.9;font-weight:700;color:var(--text)}
     .tr{background:var(--muted);border:1px solid var(--line);border-radius:10px}
     .td,.th{padding:10px 12px;color:var(--text)}
-    .th{font-weight:700}
     .td:first-child,.th:first-child{border-top-left-radius:10px;border-bottom-left-radius:10px}
     .td:last-child,.th:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px}
 
@@ -51,7 +47,7 @@
     .pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:.85rem;background:var(--pill);border:1px solid var(--pill-b);color:var(--text)}
     .pill.home{background:var(--home-bg);color:var(--home-fg);border-color:#1f3a5f}
     .pill.office{background:var(--office-bg);color:var(--office-fg);border-color:#1b4d3a}
-    .pill.muted{opacity:.65}
+    .pill.muted{opacity:.7}
 
     /* Calendar */
     .calendar{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px}
@@ -60,20 +56,31 @@
     .cell.head{background:#0c1526;font-weight:700}
     .cell.member{text-align:left}
     .cell.day{cursor:pointer}
+    .member-name{font-weight:700;color:var(--text)}
+    .member-unit{opacity:.85;font-size:.9rem;color:var(--text)}
 
-    /* Auth */
+    .footer{margin-top:26px;text-align:center;opacity:.6;color:var(--text)}
+    .error{color:var(--bad)}
+
+    /* Login panel */
     .auth{max-width:480px;margin:80px auto;padding:16px}
     .row{display:flex;gap:8px;flex-wrap:wrap}
     input,select{background:#0f172a;border:1px solid var(--line);border-radius:10px;padding:10px;color:var(--text)}
     input::placeholder{color:#94a3b8}
-    .error{color:var(--bad)}
+
+    /* Garantizar textos blancos si el navegador pone estilos raros */
+    .title, .logo span, .th, .kpi, .muted, .td, .tab, .btn, .member-name, .member-unit { color: var(--text); }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <!-- HEADER -->
+
+    <!-- ============== HEADER ============== -->
     <div class="top">
-      <div class="logo"><span class="dot"></span> Control de Asistencia</div>
+      <div class="logo">
+        <img src="./Systemgroup.jpg" alt="Systemgroup" style="height:28px;border-radius:4px;object-fit:contain;display:block" />
+        <span>Flexibility by Systemgroup</span>
+      </div>
       <div class="tabs">
         <button class="tab active" id="tabDash">Dashboard</button>
         <button class="tab" id="tabCal">Calendario</button>
@@ -83,7 +90,7 @@
       <button class="btn" id="btnLogout">Salir</button>
     </div>
 
-    <!-- LOGIN -->
+    <!-- ============== LOGIN (email/contraseña) ============== -->
     <section id="viewAuth" style="display:none">
       <div class="card auth">
         <h3 class="title">Inicia sesión</h3>
@@ -91,23 +98,22 @@
           <input id="authEmail" type="email" placeholder="Correo" style="flex:1 1 220px">
           <input id="authPass" type="password" placeholder="Contraseña" style="flex:1 1 160px">
         </div>
-        <div class="row" style="margin-top:8px;align-items:center">
+        <div class="row" style="margin-top:8px">
           <button class="btn primary" id="btnDoLogin">Entrar</button>
           <button class="btn" id="btnDoSignup">Crear cuenta</button>
-          <a id="lnkForgot" style="margin-left:auto;cursor:pointer;opacity:.9">¿Olvidaste tu contraseña?</a>
+          <button class="btn" id="btnForgot">¿Olvidaste tu contraseña?</button>
         </div>
         <div id="authError" class="error" style="margin-top:10px;display:none"></div>
       </div>
     </section>
 
-    <!-- DASHBOARD -->
+    <!-- ============== DASHBOARD ============== -->
     <section id="viewDashboard" class="grid">
-      <!-- Controles semana (dashboard) -->
-      <div class="card" style="display:flex;align-items:center;gap:8px;justify-content:space-between">
+      <div class="card" style="display:flex;align-items:center;justify-content:space-between">
         <div class="muted" id="weekRange">Semana</div>
-        <div>
-          <button class="btn" id="btnDashPrev">← Semana anterior</button>
-          <button class="btn" id="btnDashNext">Semana siguiente →</button>
+        <div class="row" style="gap:8px;align-items:center">
+          <label class="muted" for="monthPicker">Mes:</label>
+          <input id="monthPicker" type="month" style="background:#0f172a;border:1px solid var(--line);border-radius:10px;padding:8px;color:var(--text)">
         </div>
       </div>
 
@@ -127,9 +133,9 @@
       <div class="card">
         <h3 class="title">Resumen por unidad (mes)</h3>
         <div class="muted" id="monthLabel">—</div>
-        <table class="table">
+        <table class="table" id="tblUnits">
           <thead>
-            <tr class="tr">
+            <tr class="th tr">
               <th class="th">Unidad</th>
               <th class="th">% Casa</th>
               <th class="th">% Oficina</th>
@@ -141,25 +147,20 @@
       </div>
     </section>
 
-    <!-- CALENDARIO -->
+    <!-- ============== CALENDARIO ============== -->
     <section id="viewCalendar" style="display:none">
-      <div class="card" style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap">
-        <div style="display:flex;gap:8px;align-items:center">
+      <div class="card" style="display:flex;gap:8px;align-items:center;justify-content:space-between">
+        <div>
           <button class="btn" id="btnPrevWeek">← Semana anterior</button>
           <button class="btn" id="btnNextWeek">Semana siguiente →</button>
         </div>
         <div class="muted" id="weekLabel">Semana</div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <label class="muted" for="calUnitFilter">Unidad:</label>
-          <select id="calUnitFilter">
-            <option value="">Todas</option>
-          </select>
-        </div>
       </div>
       <div id="calendarContainer" class="calendar" style="margin-top:12px"></div>
+      <div class="footer">© Flexibility by Systemgroup</div>
     </section>
 
-    <!-- EQUIPOS -->
+    <!-- ============== EQUIPOS ============== -->
     <section id="viewTeams" style="display:none" class="grid">
       <div class="card">
         <h3 class="title">Crear miembro</h3>
@@ -180,7 +181,7 @@
         </div>
         <table class="table">
           <thead>
-            <tr class="tr">
+            <tr class="th tr">
               <th class="th">Nombre</th>
               <th class="th">Unidad</th>
               <th class="th">Email</th>
@@ -195,17 +196,25 @@
   </div>
 
   <script>
-    // ======= SUPABASE =======
+    // ================== CONFIG SUPABASE ==================
     const SUPABASE_URL  = "https://tkrlcuqbujzwqhweblto.supabase.co";
     const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRrcmxjdXFidWp6d3Fod2VibHRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5MTUzODIsImV4cCI6MjA3MDQ5MTM4Mn0.PjwSfBreunYD1RyiOUeCzJKIug7Wc7YSaqZFzMJXCxg";
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-    // ======= STATE / HELPERS =======
-    const state = { user:null, orgId:null, weekStart:null, unitsCache:[] };
-    const $ = s=>document.querySelector(s);
-    const show = id=>{
+    // ================== STATE ==================
+    const state = {
+      user: null,
+      orgId: null,
+      weekStart: null,   // lunes
+      monthRef: null     // primer día del mes elegido
+    };
+
+    // Helpers DOM
+    const $ = (sel)=>document.querySelector(sel);
+    const show = id => {
       ['viewAuth','viewDashboard','viewCalendar','viewTeams'].forEach(v=>{
-        const el = $('#'+v); if(!el) return;
+        const el = $('#'+v);
+        if(!el) return;
         el.style.display = (v===id?'':'none');
       });
       ['tabDash','tabCal','tabTeam'].forEach(t=>$('#'+t).classList.remove('active'));
@@ -214,170 +223,176 @@
       if(id==='viewTeams')     $('#tabTeam').classList.add('active');
     };
 
-    // ======= AUTH =======
+    // ================== AUTH ==================
     $('#btnDoLogin').onclick = async ()=>{
+      const email = $('#authEmail').value.trim();
+      const pass  = $('#authPass').value;
       setAuthError('');
-      const email=$('#authEmail').value.trim(), pass=$('#authPass').value;
-      if(!email||!pass) return setAuthError('Escribe correo y contraseña.');
+      if(!email || !pass) return setAuthError('Escribe correo y contraseña.');
       const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-      if(error) return setAuthError('No se pudo iniciar sesión: '+error.message);
+      if(error){ setAuthError('No se pudo iniciar sesión: '+error.message); return; }
       await bootstrap();
     };
-
     $('#btnDoSignup').onclick = async ()=>{
+      const email = $('#authEmail').value.trim();
+      const pass  = $('#authPass').value;
       setAuthError('');
-      const email=$('#authEmail').value.trim(), pass=$('#authPass').value;
-      if(!email||!pass) return setAuthError('Escribe correo y contraseña.');
+      if(!email || !pass) return setAuthError('Escribe correo y contraseña.');
       const { error } = await sb.auth.signUp({ email, password: pass });
-      if(error) return setAuthError('No se pudo crear la cuenta: '+error.message);
+      if(error){ setAuthError('No se pudo crear la cuenta: '+error.message); return; }
       alert('Cuenta creada. Si tu proyecto requiere confirmación, revisa tu correo.');
       await bootstrap();
     };
-
+    $('#btnForgot').onclick = async ()=>{
+      const email = $('#authEmail').value.trim();
+      if(!email) return setAuthError('Escribe tu correo para enviarte el enlace de recuperación.');
+      const { error } = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin
+      });
+      if(error) setAuthError('No se pudo enviar el correo de recuperación: '+error.message);
+      else alert('Revisa tu correo para recuperar tu contraseña.');
+    };
     function setAuthError(msg){
       const box = $('#authError');
       if(!msg){ box.style.display='none'; box.textContent=''; }
       else { box.textContent = msg; box.style.display='block'; }
     }
-
-    $('#btnLogout').onclick = async ()=>{
+    $('#btnLogout').onclick = async()=>{
       await sb.auth.signOut();
-      state.user = null; state.orgId = null;
+      state.user = null;
       $('#sessionInfo').textContent = 'Sesión: —';
       show('viewAuth');
     };
 
-    // Olvidé mi contraseña
-    $('#lnkForgot').onclick = async ()=>{
-      const email = $('#authEmail').value.trim();
-      if(!email) return setAuthError('Escribe tu correo arriba y vuelve a intentar.');
-      const redirectUrl = window.location.origin + '/';
-      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl });
-      if(error) setAuthError('No se pudo enviar el enlace: ' + error.message);
-      else alert('Te envié un correo con el enlace para restablecer la contraseña.');
-    };
-    sb.auth.onAuthStateChange(async (event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        const newPass = prompt('Escribe tu nueva contraseña:');
-        if (!newPass) return;
-        const { error } = await sb.auth.updateUser({ password: newPass });
-        if (error) alert('No se pudo actualizar la contraseña: ' + error.message);
-        else { alert('Contraseña actualizada. Ya puedes iniciar sesión.'); setAuthError(''); show('viewAuth'); }
-      }
-    });
-
-    // ======= NAV =======
+    // ================== NAV ==================
     $('#tabDash').onclick = async ()=>{ show('viewDashboard'); await loadDashboard(); };
-    $('#tabCal').onclick  = async ()=>{ show('viewCalendar');  await ensureUnits(); await loadCalendar();  };
+    $('#tabCal').onclick  = async ()=>{ show('viewCalendar');  await loadCalendar();  };
     $('#tabTeam').onclick = async ()=>{ show('viewTeams');     await loadMembers();   };
 
-    // ======= INIT =======
+    // ================== INIT ==================
     bootstrap();
     async function bootstrap(){
       const { data:{ user } } = await sb.auth.getUser();
-      if(!user){ show('viewAuth'); return; }
+      if(!user){
+        show('viewAuth');
+        return;
+      }
       state.user = user;
       $('#sessionInfo').textContent = 'Sesión: ' + (user.email || user.id);
 
+      // org del perfil
       const { data:prof } = await sb.from('profiles').select('org_id').eq('id', user.id).maybeSingle();
       state.orgId = prof?.org_id || null;
 
-      const t=new Date(); const m=new Date(t); m.setDate(t.getDate()-((t.getDay()+6)%7)); state.weekStart=m;
+      // Semana actual (lunes)
+      const today = new Date();
+      const monday = new Date(today);
+      monday.setDate(today.getDate() - ((today.getDay()+6)%7));
+      state.weekStart = monday;
+
+      // Mes por defecto
+      state.monthRef = new Date(today.getFullYear(), today.getMonth(), 1);
+      const m = state.monthRef;
+      const mm = String(m.getMonth()+1).padStart(2,'0');
+      $('#monthPicker').value = `${m.getFullYear()}-${mm}`;
+      $('#monthPicker').addEventListener('change', ()=>{
+        const [yy,mm] = $('#monthPicker').value.split('-').map(Number);
+        state.monthRef = new Date(yy, mm-1, 1);
+        loadDashboard();
+      });
 
       show('viewDashboard');
       await loadDashboard();
     }
 
-    // ======= DASHBOARD =======
-    $('#btnDashPrev').onclick = ()=>{ shiftWeek(-7); loadDashboard(); };
-    $('#btnDashNext').onclick = ()=>{ shiftWeek(+7); loadDashboard(); };
-
+    // ================== DASHBOARD ==================
     async function loadDashboard(){
       const ws = weekStart(), we = weekEnd();
       $('#weekRange').textContent = `Semana del ${fmtDate(ws)} al ${fmtDate(we)}`;
-      const ym = new Date(ws.getFullYear(), ws.getMonth(), 1);
-      $('#monthLabel').textContent = `${ym.getMonth()+1}/${ym.getFullYear()}`;
+
+      // Mes seleccionado
+      const m0 = new Date(state.monthRef.getTime());
+      $('#monthLabel').textContent = m0.toLocaleDateString('es-CO', { month:'long', year:'numeric' });
 
       if(!state.orgId){ setKpis(null); drawUnits([]); return; }
 
+      // KPIs semana por org
       const { data:attW, error:e1 } = await sb
         .from('attendance')
         .select('location')
-        .gte('work_date', iso(ws)).lte('work_date', iso(we))
-        .eq('org_id', state.orgId).limit(2000);
+        .gte('work_date', iso(ws))
+        .lte('work_date', iso(we))
+        .eq('org_id', state.orgId)
+        .limit(2000);
       if(e1){ console.error(e1); setKpis(null); }
       else{
-        const tot = attW.length || 1;
+        const total = attW.length || 1;
         const home = attW.filter(r=>r.location==='home').length;
         const office= attW.filter(r=>r.location==='office').length;
-        setKpis({ home: Math.round(home*100/tot), office: Math.round(office*100/tot) });
+        setKpis({ home: Math.round(home*100/total), office: Math.round(office*100/total) });
       }
 
-      const monthFrom = iso(new Date(ws.getFullYear(), ws.getMonth(), 1));
-      const monthTo   = iso(new Date(ws.getFullYear(), ws.getMonth()+1, 0));
+      // Resumen por unidad del mes (según monthRef)
+      const monthFrom = iso(new Date(m0.getFullYear(), m0.getMonth(), 1));
+      const monthTo   = iso(new Date(m0.getFullYear(), m0.getMonth()+1, 0));
       const { data:rows, error:e2 } = await sb
         .from('attendance')
         .select('location, team_members(unit)')
         .eq('org_id', state.orgId)
-        .gte('work_date', monthFrom).lte('work_date', monthTo)
+        .gte('work_date', monthFrom)
+        .lte('work_date', monthTo)
         .limit(5000);
       if(e2){ console.error(e2); drawUnits([]); }
       else{
         const byUnit = {};
         for(const r of rows){
           const u = r.team_members?.unit || '—';
-          byUnit[u] ??= { unit:u, home:0, office:0, total:0 };
-          if(r.location==='home') byUnit[u].home++; else if(r.location==='office') byUnit[u].office++;
+          if(!byUnit[u]) byUnit[u] = { unit:u, home:0, office:0, total:0 };
+          if(r.location==='home') byUnit[u].home++;
+          else if(r.location==='office') byUnit[u].office++;
           byUnit[u].total++;
         }
         const data = Object.values(byUnit).map(x=>{
-          const tot=x.total||1;
-          return { unit:x.unit, pHome:Math.round(x.home*100/tot), pOffice:Math.round(x.office*100/tot), total:x.total };
+          const total = x.total || 1;
+          return { unit:x.unit, pHome:Math.round(x.home*100/total), pOffice:Math.round(x.office*100/total), total:x.total };
         }).sort((a,b)=>a.unit.localeCompare(b.unit));
         drawUnits(data);
       }
     }
     function setKpis(x){
-      $('#kpiHome').textContent = x ? (x.home+'%') : '—';
-      $('#kpiOffice').textContent = x ? (x.office+'%') : '—';
+      if(!x){ $('#kpiHome').textContent='—'; $('#kpiOffice').textContent='—'; return; }
+      $('#kpiHome').textContent  = x.home + '%';
+      $('#kpiOffice').textContent = x.office + '%';
     }
     function drawUnits(list){
       const tbody = $('#unitsBody'); tbody.innerHTML='';
       if(!list.length){ tbody.innerHTML = `<tr class="tr"><td class="td" colspan="4">—</td></tr>`; return; }
       for(const r of list){
         const tr = document.createElement('tr'); tr.className='tr';
-        tr.innerHTML = `<td class="td">${r.unit}</td><td class="td">${r.pHome}%</td><td class="td">${r.pOffice}%</td><td class="td">${r.total}</td>`;
+        tr.innerHTML = `
+          <td class="td">${r.unit}</td>
+          <td class="td">${r.pHome}%</td>
+          <td class="td">${r.pOffice}%</td>
+          <td class="td">${r.total}</td>`;
         tbody.appendChild(tr);
       }
     }
 
-    // ======= CALENDARIO =======
+    // ================== CALENDARIO ==================
     $('#btnPrevWeek').onclick = ()=>{ shiftWeek(-7); loadCalendar(); };
     $('#btnNextWeek').onclick = ()=>{ shiftWeek(+7); loadCalendar(); };
-    $('#calUnitFilter').onchange = ()=>loadCalendar();
 
-    function shiftWeek(delta){ const d=weekStart(); d.setDate(d.getDate()+delta); state.weekStart=d; }
+    function shiftWeek(delta){ const d = weekStart(); d.setDate(d.getDate()+delta); state.weekStart = d; }
     function weekStart(){ return new Date(state.weekStart); }
-    function weekEnd(){ const d=weekStart(); d.setDate(d.getDate()+6); return d; }
-
-    async function ensureUnits(){
-      if(!state.orgId) return;
-      if(state.unitsCache.length) return;
-      const { data, error } = await sb.from('team_members')
-        .select('unit').eq('org_id', state.orgId).eq('active', true);
-      if(error) return;
-      const units = [...new Set((data||[]).map(r=>r.unit||'—'))].sort();
-      state.unitsCache = units;
-      const sel = $('#calUnitFilter'); sel.innerHTML = `<option value="">Todas</option>` +
-        units.map(u=>`<option value="${u}">${u}</option>`).join('');
-    }
+    function weekEnd(){ const d = weekStart(); d.setDate(d.getDate()+6); return d; }
 
     async function loadCalendar(){
-      const cont = $('#calendarContainer'); cont.innerHTML = 'Cargando…';
+      const cont = $('#calendarContainer');
+      cont.innerHTML = 'Cargando…';
       const ws = weekStart(), we = weekEnd();
       $('#weekLabel').textContent = `Semana del ${fmtDate(ws)} al ${fmtDate(we)}`;
+
       if(!state.orgId){ cont.innerHTML = '<div class="error">No hay organización</div>'; return; }
-      await ensureUnits();
 
       let data=null, err=null;
       try{
@@ -387,12 +402,18 @@
       if(err){
         const days = rangeDays(ws,we);
         const { data:members, error:em } = await sb.from('team_members')
-          .select('id, full_name, unit').eq('org_id', state.orgId).eq('active', true).order('full_name');
+          .select('id, full_name, unit')
+          .eq('org_id', state.orgId)
+          .eq('active', true)
+          .order('full_name');
         if(em){ cont.innerHTML = `<div class="error">${em.message}</div>`; return; }
         const { data:atts, error:ea } = await sb.from('attendance')
           .select('member_id, work_date, location')
-          .eq('org_id', state.orgId).gte('work_date', iso(ws)).lte('work_date', iso(we)).limit(2000);
+          .eq('org_id', state.orgId)
+          .gte('work_date', iso(ws)).lte('work_date', iso(we))
+          .limit(2000);
         if(ea){ cont.innerHTML = `<div class="error">${ea.message}</div>`; return; }
+
         const rows=[];
         for(const m of members){
           for(const d of days){
@@ -403,21 +424,25 @@
         data = rows;
       }
 
-      const selectedUnit = $('#calUnitFilter').value || '';
-      const days = rangeDays(ws,we).map(d=>iso(d));
+      // DÍAS SIN DOMINGO
+      const days = rangeDays(ws,we).filter(d=>d.getDay()!==0);
+      const isoDays = days.map(d=>iso(d));
+
       const by = new Map();
       for(const r of data){
-        if(selectedUnit && (r.unit||'—') !== selectedUnit) continue;
+        // Ignorar registros que caen en domingo (por si vienen del RPC)
+        if(!isoDays.includes(r.work_date)) continue;
+
         if(!by.has(r.member_id)){
-          by.set(r.member_id,{ id:r.member_id, full_name:r.full_name, unit:r.unit||'—', days:Object.fromEntries(days.map(x=>[x,null])) });
+          by.set(r.member_id,{ id:r.member_id, full_name:r.full_name, unit:r.unit||'—', days:Object.fromEntries(isoDays.map(x=>[x,null])) });
         }
         if(r.location) by.get(r.member_id).days[r.work_date] = r.location;
       }
-      cont.innerHTML = renderCalendarGrid([...by.values()], days);
+      cont.innerHTML = renderCalendarGrid([...by.values()], isoDays);
     }
 
     function renderCalendarGrid(rows, days){
-      const head = `
+      const header = `
         <div class="cal-head">
           <div class="cell head">Miembro</div>
           ${days.map(d=>`<div class="cell head">${fmtDay(d)}</div>`).join('')}
@@ -425,39 +450,53 @@
       const body = rows.map(r=>`
         <div class="cal-row">
           <div class="cell member">
-            <div style="font-weight:700">${r.full_name}</div>
-            <div style="opacity:.85">${r.unit}</div>
+            <div class="member-name">${r.full_name}</div>
+            <div class="member-unit">${r.unit}</div>
           </div>
           ${days.map(d=>`
             <button class="cell day" data-member-id="${r.id}" data-date="${d}">
               ${pill(r.days[d])}
             </button>`).join('')}
         </div>`).join('');
-      return head+body;
+      return header + body;
     }
 
-    // Toggle rápido desde calendario
+    // Toggle con 3 estados: home -> office -> null -> home
     document.addEventListener('click', async (e)=>{
       const btn = e.target.closest('.cell.day'); if(!btn) return;
       if(!state.orgId) return;
-      const id = btn.dataset.memberId, d = btn.dataset.date;
-      const current = btn.textContent.trim();
-      const next = current==='Casa' ? 'office' : current==='Oficina' ? 'home' : 'home';
-      const { error } = await sb.from('attendance').upsert({
-        org_id: state.orgId, member_id:id, work_date:d, location: next
-      }, { onConflict: 'org_id,member_id,work_date' });
-      if(error){ alert('No se pudo marcar: '+error.message); return; }
+
+      const id = btn.dataset.memberId;
+      const d  = btn.dataset.date;
+      const raw = btn.textContent.trim();
+      const current = raw === 'Casa' ? 'home' : raw === 'Oficina' ? 'office' : null;
+      const next = current === 'home' ? 'office' : current === 'office' ? null : 'home';
+
+      if(next === null){
+        const { error } = await sb
+          .from('attendance')
+          .delete()
+          .eq('org_id', state.orgId)
+          .eq('member_id', id)
+          .eq('work_date', d);
+        if(error){ alert('No se pudo limpiar: '+error.message); return; }
+      }else{
+        const { error } = await sb.from('attendance').upsert({
+          org_id: state.orgId, member_id:id, work_date:d, location: next
+        }, { onConflict: 'org_id,member_id,work_date' });
+        if(error){ alert('No se pudo marcar: '+error.message); return; }
+      }
       loadCalendar();
     });
 
-    // ======= EQUIPOS =======
+    // ================== EQUIPOS ==================
     $('#btnCreate').onclick = async ()=>{
       if(!state.orgId) return alert('No hay organización');
-      const full_name = $('#inName').value.trim();
-      const email = $('#inEmail').value.trim() || null;
-      const unit  = $('#inUnit').value.trim() || null;
-      if(!full_name) return alert('Nombre es requerido');
-      const { error } = await sb.from('team_members').insert({ org_id: state.orgId, full_name, email, unit, active:true });
+      const name = $('#inName').value.trim();
+      const email= $('#inEmail').value.trim() || null;
+      const unit = $('#inUnit').value.trim() || null;
+      if(!name) return alert('Nombre es requerido');
+      const { error } = await sb.from('team_members').insert({ org_id: state.orgId, full_name:name, email, unit, active:true });
       if(error) return alert('Error creando miembro: '+error.message);
       $('#inName').value=''; $('#inEmail').value=''; $('#inUnit').value='';
       await loadMembers();
@@ -481,7 +520,9 @@
           <td class="td">${m.unit||'—'}</td>
           <td class="td">${m.email||'—'}</td>
           <td class="td">${m.active?'Sí':'No'}</td>
-          <td class="td"><button class="btn" data-act="toggle" data-id="${m.id}">${m.active?'Desactivar':'Activar'}</button></td>`;
+          <td class="td">
+            <button class="btn" data-act="toggle" data-id="${m.id}">${m.active?'Desactivar':'Activar'}</button>
+          </td>`;
         body.appendChild(tr);
       }
     }
@@ -495,22 +536,19 @@
       loadMembers();
     });
 
-    // ======= UTILS =======
+    // ================== UTILS ==================
     function iso(d){ const x=new Date(d); x.setHours(0,0,0,0); return x.toISOString().slice(0,10); }
-    function fmtDate(d){ const dd=(d instanceof Date)?d:new Date(d); return dd.toLocaleDateString('es-CO',{weekday:'short',day:'2-digit',month:'2-digit'}).replace('.',''); }
+    function fmtDate(d){
+      const dd = (d instanceof Date)? d : new Date(d);
+      return dd.toLocaleDateString('es-CO',{weekday:'short', day:'2-digit', month:'2-digit'}).replace('.','');
+    }
     function fmtDay(isoStr){ return fmtDate(new Date(isoStr)); }
     function rangeDays(from,to){ const out=[]; const d=new Date(from); while(d<=to){ out.push(new Date(d)); d.setDate(d.getDate()+1); } return out; }
-    function pill(loc){ if(loc==='home') return '<span class="pill home">Casa</span>'; if(loc==='office') return '<span class="pill office">Oficina</span>'; return '<span class="pill muted">—</span>'; }
-
-    // Mensaje de bienvenida con fade suave
-    document.addEventListener('DOMContentLoaded', ()=>{
-      const msg = document.createElement('div');
-      msg.textContent = "Bienvenido(a) al sistema de control de asistencia";
-      msg.style.textAlign = "center"; msg.style.margin = "10px 0 0";
-      msg.style.fontWeight = "bold"; msg.style.opacity = "1"; msg.style.transition="opacity .6s ease";
-      document.body.prepend(msg);
-      setTimeout(()=>{ msg.style.opacity="0"; setTimeout(()=>msg.remove(), 650); }, 2200);
-    });
+    function pill(loc){
+      if(loc==='home')   return `<span class="pill home">Casa</span>`;
+      if(loc==='office') return `<span class="pill office">Oficina</span>`;
+      return `<span class="pill muted">—</span>`;
+    }
   </script>
 </body>
 </html>
