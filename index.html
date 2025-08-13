@@ -20,13 +20,16 @@
 
     /* NAV */
     .top{display:flex;align-items:center;gap:8px;margin-bottom:16px}
-    .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:22px}
+    .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:22px;color:var(--text)}
     .dot{width:14px;height:14px;border-radius:4px;background:linear-gradient(135deg,#22d3ee,#60a5fa)}
     .tabs{display:flex;gap:8px;margin-left:16px}
-    .tab{background:var(--panel);border:1px solid var(--line);padding:10px 14px;border-radius:10px;cursor:pointer}
+    .tab{
+      background:var(--panel);border:1px solid var(--line);
+      padding:10px 14px;border-radius:10px;cursor:pointer;color:var(--text);
+    }
     .tab.active{outline:2px solid #3b82f6}
-    .session{margin-left:auto;opacity:.85}
-    .btn{background:#1f2937;border:1px solid var(--line);padding:8px 12px;border-radius:10px;cursor:pointer}
+    .session{margin-left:auto;opacity:.85;color:var(--text)}
+    .btn{background:#1f2937;border:1px solid var(--line);color:var(--text);padding:8px 12px;border-radius:10px;cursor:pointer}
     .btn:hover{filter:brightness(1.07)}
     .btn.primary{background:#1e3a8a;border-color:#1e3a8a}
 
@@ -34,18 +37,18 @@
     .grid{display:grid;gap:12px}
     .grid.cols-2{grid-template-columns:1fr 1fr}
     .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
-    .title{font-weight:700;margin:0 0 10px 0}
-    .muted{opacity:.85}
-    .kpi{font-size:34px;font-weight:800;margin-top:8px}
+    .title{font-weight:700;margin:0 0 10px 0;color:var(--text)}
+    .muted{opacity:.85;color:var(--text)}
+    .kpi{font-size:34px;font-weight:800;margin-top:8px;color:var(--text)}
     .table{width:100%;border-collapse:separate;border-spacing:0 8px}
     .tr{background:var(--muted);border:1px solid var(--line);border-radius:10px}
-    .td,.th{padding:10px 12px}
+    .td,.th{padding:10px 12px;color:var(--text)}
     .th{font-weight:700}
     .td:first-child,.th:first-child{border-top-left-radius:10px;border-bottom-left-radius:10px}
     .td:last-child,.th:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px}
 
     /* Pills */
-    .pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:.85rem;background:var(--pill);border:1px solid var(--pill-b)}
+    .pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:.85rem;background:var(--pill);border:1px solid var(--pill-b);color:var(--text)}
     .pill.home{background:var(--home-bg);color:var(--home-fg);border-color:#1f3a5f}
     .pill.office{background:var(--office-bg);color:var(--office-fg);border-color:#1b4d3a}
     .pill.muted{opacity:.65}
@@ -53,7 +56,7 @@
     /* Calendar */
     .calendar{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px}
     .cal-head,.cal-row{display:grid;grid-template-columns:260px repeat(7,1fr);gap:8px;align-items:center}
-    .cell{background:var(--muted);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}
+    .cell{background:var(--muted);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;color:var(--text)}
     .cell.head{background:#0c1526;font-weight:700}
     .cell.member{text-align:left}
     .cell.day{cursor:pointer}
@@ -61,7 +64,7 @@
     /* Auth */
     .auth{max-width:480px;margin:80px auto;padding:16px}
     .row{display:flex;gap:8px;flex-wrap:wrap}
-    input{background:#0f172a;border:1px solid var(--line);border-radius:10px;padding:10px;color:var(--text)}
+    input,select{background:#0f172a;border:1px solid var(--line);border-radius:10px;padding:10px;color:var(--text)}
     input::placeholder{color:#94a3b8}
     .error{color:var(--bad)}
   </style>
@@ -99,9 +102,13 @@
 
     <!-- DASHBOARD -->
     <section id="viewDashboard" class="grid">
-      <div class="card" style="display:flex;align-items:center;justify-content:space-between">
+      <!-- Controles semana (dashboard) -->
+      <div class="card" style="display:flex;align-items:center;gap:8px;justify-content:space-between">
         <div class="muted" id="weekRange">Semana</div>
-        <div class="muted" id="orgBadge">Org: —</div>
+        <div>
+          <button class="btn" id="btnDashPrev">← Semana anterior</button>
+          <button class="btn" id="btnDashNext">Semana siguiente →</button>
+        </div>
       </div>
 
       <div class="grid cols-2">
@@ -136,12 +143,18 @@
 
     <!-- CALENDARIO -->
     <section id="viewCalendar" style="display:none">
-      <div class="card" style="display:flex;gap:8px;align-items:center;justify-content:space-between">
-        <div>
+      <div class="card" style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+        <div style="display:flex;gap:8px;align-items:center">
           <button class="btn" id="btnPrevWeek">← Semana anterior</button>
           <button class="btn" id="btnNextWeek">Semana siguiente →</button>
         </div>
         <div class="muted" id="weekLabel">Semana</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <label class="muted" for="calUnitFilter">Unidad:</label>
+          <select id="calUnitFilter">
+            <option value="">Todas</option>
+          </select>
+        </div>
       </div>
       <div id="calendarContainer" class="calendar" style="margin-top:12px"></div>
     </section>
@@ -188,7 +201,7 @@
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
     // ======= STATE / HELPERS =======
-    const state = { user:null, orgId:null, weekStart:null };
+    const state = { user:null, orgId:null, weekStart:null, unitsCache:[] };
     const $ = s=>document.querySelector(s);
     const show = id=>{
       ['viewAuth','viewDashboard','viewCalendar','viewTeams'].forEach(v=>{
@@ -201,7 +214,7 @@
       if(id==='viewTeams')     $('#tabTeam').classList.add('active');
     };
 
-    // ======= AUTH (email/contraseña) =======
+    // ======= AUTH =======
     $('#btnDoLogin').onclick = async ()=>{
       setAuthError('');
       const email=$('#authEmail').value.trim(), pass=$('#authPass').value;
@@ -234,7 +247,7 @@
       show('viewAuth');
     };
 
-    // === Forgot password (envío del correo) ===
+    // Olvidé mi contraseña
     $('#lnkForgot').onclick = async ()=>{
       const email = $('#authEmail').value.trim();
       if(!email) return setAuthError('Escribe tu correo arriba y vuelve a intentar.');
@@ -243,25 +256,19 @@
       if(error) setAuthError('No se pudo enviar el enlace: ' + error.message);
       else alert('Te envié un correo con el enlace para restablecer la contraseña.');
     };
-
-    // === Al volver desde el enlace: solicitar nueva clave y actualizar ===
-    sb.auth.onAuthStateChange(async (event, session) => {
+    sb.auth.onAuthStateChange(async (event) => {
       if (event === 'PASSWORD_RECOVERY') {
         const newPass = prompt('Escribe tu nueva contraseña:');
         if (!newPass) return;
         const { error } = await sb.auth.updateUser({ password: newPass });
         if (error) alert('No se pudo actualizar la contraseña: ' + error.message);
-        else {
-          alert('Contraseña actualizada. Ya puedes iniciar sesión.');
-          setAuthError('');
-          show('viewAuth');
-        }
+        else { alert('Contraseña actualizada. Ya puedes iniciar sesión.'); setAuthError(''); show('viewAuth'); }
       }
     });
 
     // ======= NAV =======
     $('#tabDash').onclick = async ()=>{ show('viewDashboard'); await loadDashboard(); };
-    $('#tabCal').onclick  = async ()=>{ show('viewCalendar');  await loadCalendar();  };
+    $('#tabCal').onclick  = async ()=>{ show('viewCalendar');  await ensureUnits(); await loadCalendar();  };
     $('#tabTeam').onclick = async ()=>{ show('viewTeams');     await loadMembers();   };
 
     // ======= INIT =======
@@ -272,12 +279,9 @@
       state.user = user;
       $('#sessionInfo').textContent = 'Sesión: ' + (user.email || user.id);
 
-      // org desde profiles
       const { data:prof } = await sb.from('profiles').select('org_id').eq('id', user.id).maybeSingle();
       state.orgId = prof?.org_id || null;
-      $('#orgBadge').textContent = state.orgId ? ('Org: '+state.orgId) : 'Org: —';
 
-      // lunes actual
       const t=new Date(); const m=new Date(t); m.setDate(t.getDate()-((t.getDay()+6)%7)); state.weekStart=m;
 
       show('viewDashboard');
@@ -285,6 +289,9 @@
     }
 
     // ======= DASHBOARD =======
+    $('#btnDashPrev').onclick = ()=>{ shiftWeek(-7); loadDashboard(); };
+    $('#btnDashNext').onclick = ()=>{ shiftWeek(+7); loadDashboard(); };
+
     async function loadDashboard(){
       const ws = weekStart(), we = weekEnd();
       $('#weekRange').textContent = `Semana del ${fmtDate(ws)} al ${fmtDate(we)}`;
@@ -293,7 +300,6 @@
 
       if(!state.orgId){ setKpis(null); drawUnits([]); return; }
 
-      // KPIs semana
       const { data:attW, error:e1 } = await sb
         .from('attendance')
         .select('location')
@@ -307,7 +313,6 @@
         setKpis({ home: Math.round(home*100/tot), office: Math.round(office*100/tot) });
       }
 
-      // Unidades (mes)
       const monthFrom = iso(new Date(ws.getFullYear(), ws.getMonth(), 1));
       const monthTo   = iso(new Date(ws.getFullYear(), ws.getMonth()+1, 0));
       const { data:rows, error:e2 } = await sb
@@ -322,8 +327,7 @@
         for(const r of rows){
           const u = r.team_members?.unit || '—';
           byUnit[u] ??= { unit:u, home:0, office:0, total:0 };
-          if(r.location==='home') byUnit[u].home++;
-          else if(r.location==='office') byUnit[u].office++;
+          if(r.location==='home') byUnit[u].home++; else if(r.location==='office') byUnit[u].office++;
           byUnit[u].total++;
         }
         const data = Object.values(byUnit).map(x=>{
@@ -350,15 +354,30 @@
     // ======= CALENDARIO =======
     $('#btnPrevWeek').onclick = ()=>{ shiftWeek(-7); loadCalendar(); };
     $('#btnNextWeek').onclick = ()=>{ shiftWeek(+7); loadCalendar(); };
+    $('#calUnitFilter').onchange = ()=>loadCalendar();
+
     function shiftWeek(delta){ const d=weekStart(); d.setDate(d.getDate()+delta); state.weekStart=d; }
     function weekStart(){ return new Date(state.weekStart); }
     function weekEnd(){ const d=weekStart(); d.setDate(d.getDate()+6); return d; }
+
+    async function ensureUnits(){
+      if(!state.orgId) return;
+      if(state.unitsCache.length) return;
+      const { data, error } = await sb.from('team_members')
+        .select('unit').eq('org_id', state.orgId).eq('active', true);
+      if(error) return;
+      const units = [...new Set((data||[]).map(r=>r.unit||'—'))].sort();
+      state.unitsCache = units;
+      const sel = $('#calUnitFilter'); sel.innerHTML = `<option value="">Todas</option>` +
+        units.map(u=>`<option value="${u}">${u}</option>`).join('');
+    }
 
     async function loadCalendar(){
       const cont = $('#calendarContainer'); cont.innerHTML = 'Cargando…';
       const ws = weekStart(), we = weekEnd();
       $('#weekLabel').textContent = `Semana del ${fmtDate(ws)} al ${fmtDate(we)}`;
       if(!state.orgId){ cont.innerHTML = '<div class="error">No hay organización</div>'; return; }
+      await ensureUnits();
 
       let data=null, err=null;
       try{
@@ -384,9 +403,11 @@
         data = rows;
       }
 
+      const selectedUnit = $('#calUnitFilter').value || '';
       const days = rangeDays(ws,we).map(d=>iso(d));
       const by = new Map();
       for(const r of data){
+        if(selectedUnit && (r.unit||'—') !== selectedUnit) continue;
         if(!by.has(r.member_id)){
           by.set(r.member_id,{ id:r.member_id, full_name:r.full_name, unit:r.unit||'—', days:Object.fromEntries(days.map(x=>[x,null])) });
         }
@@ -481,7 +502,7 @@
     function rangeDays(from,to){ const out=[]; const d=new Date(from); while(d<=to){ out.push(new Date(d)); d.setDate(d.getDate()+1); } return out; }
     function pill(loc){ if(loc==='home') return '<span class="pill home">Casa</span>'; if(loc==='office') return '<span class="pill office">Oficina</span>'; return '<span class="pill muted">—</span>'; }
 
-    // Mensajito de bienvenida con fade (suave)
+    // Mensaje de bienvenida con fade suave
     document.addEventListener('DOMContentLoaded', ()=>{
       const msg = document.createElement('div');
       msg.textContent = "Bienvenido(a) al sistema de control de asistencia";
