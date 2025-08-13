@@ -9,16 +9,19 @@
     :root{
       --bg:#0b0f17; --panel:#0f172a; --muted:#111827; --line:#1f2937; --text:#e5e7eb;
       --brand:#7dd3fc; --ok:#86efac; --warn:#fbbf24; --bad:#f87171;
-      --badge:#1e293b; --home-bg:#1e293b; --home-fg:#93c5fd; --office-bg:#0f2f24; --office-fg:#86efac;
       --pill:#0b1220; --pill-b:#1f2435;
+      --home-bg:#1e293b; --home-fg:#93c5fd;
+      --office-bg:#0f2f24; --office-fg:#86efac;
     }
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial}
     a{color:#93c5fd;text-decoration:none} a:hover{text-decoration:underline}
     .wrap{max-width:1100px;margin:36px auto;padding:0 16px}
 
+    /* NAV */
     .top{display:flex;align-items:center;gap:8px;margin-bottom:16px}
-    .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;color:var(--text);opacity:.9}
+    .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;color:var(--text)}
+    .dot{width:10px;height:10px;border-radius:3px;background:linear-gradient(135deg,#22d3ee,#60a5fa)}
     .tabs{display:flex;gap:8px;margin-left:16px}
     .tab{background:var(--panel);border:1px solid var(--line);padding:10px 14px;border-radius:10px;cursor:pointer;color:var(--text)}
     .tab.active{outline:2px solid #3b82f6}
@@ -27,6 +30,7 @@
     .btn:hover{filter:brightness(1.1)}
     .btn.primary{background:#1e3a8a;border-color:#1e3a8a}
 
+    /* CARDS / TABLES */
     .grid{display:grid;gap:12px}
     .grid.cols-2{grid-template-columns:1fr 1fr}
     .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
@@ -40,13 +44,15 @@
     .td:first-child,.th:first-child{border-top-left-radius:10px;border-bottom-left-radius:10px}
     .td:last-child,.th:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px}
 
+    /* Pills */
     .pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:.85rem;background:var(--pill);border:1px solid var(--pill-b);color:var(--text)}
     .pill.home{background:var(--home-bg);color:var(--home-fg);border-color:#1f3a5f}
     .pill.office{background:var(--office-bg);color:var(--office-fg);border-color:#1b4d3a}
     .pill.muted{opacity:.7}
 
+    /* Calendar */
     .calendar{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px}
-    .cal-head,.cal-row{display:grid;grid-template-columns:260px repeat(7,1fr);gap:8px;align-items:center}
+    .cal-head,.cal-row{display:grid;grid-template-columns:260px repeat(6,1fr);gap:8px;align-items:center}
     .cell{background:var(--muted);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;color:var(--text)}
     .cell.head{background:#0c1526;font-weight:700}
     .cell.member{text-align:left}
@@ -57,17 +63,23 @@
     .footer{margin-top:26px;text-align:center;opacity:.6;color:var(--text)}
     .error{color:var(--bad)}
 
+    /* Login panel */
     .auth{max-width:480px;margin:80px auto;padding:16px}
     .row{display:flex;gap:8px;flex-wrap:wrap}
     input,select{background:#0f172a;border:1px solid var(--line);border-radius:10px;padding:10px;color:var(--text)}
     input::placeholder{color:#94a3b8}
     .hint{font-size:.9rem;opacity:.85;color:var(--text)}
+
+    /* Mini “by Systemgroup” tamaño similar a “Sesión” */
+    .brand-small{font-size:14px;font-weight:600;opacity:.9}
   </style>
 </head>
 <body>
   <div class="wrap">
+
+    <!-- ============== HEADER ============== -->
     <div class="top">
-      <div class="logo">Flexibility by Systemgroup</div>
+      <div class="logo"><span class="dot"></span> <span class="brand-small">Flexibility by Systemgroup</span></div>
       <div class="tabs">
         <button class="tab active" id="tabDash">Dashboard</button>
         <button class="tab" id="tabCal">Calendario</button>
@@ -77,7 +89,7 @@
       <button class="btn" id="btnLogout">Salir</button>
     </div>
 
-    <!-- Auth -->
+    <!-- ============== LOGIN (email/contraseña) ============== -->
     <section id="viewAuth" style="display:none">
       <div class="card auth">
         <h3 class="title">Inicia sesión</h3>
@@ -88,21 +100,19 @@
         <div class="row" style="margin-top:8px">
           <button class="btn primary" id="btnDoLogin">Entrar</button>
           <button class="btn" id="btnDoSignup">Crear cuenta</button>
-          <button class="btn" id="btnReset">¿Olvidaste tu contraseña?</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" id="btnForgot">Olvidé mi contraseña</button>
         </div>
         <div id="authError" class="error" style="margin-top:10px;display:none"></div>
       </div>
     </section>
 
-    <!-- Dashboard -->
+    <!-- ============== DASHBOARD ============== -->
     <section id="viewDashboard" class="grid">
-      <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-        <div class="row" style="gap:8px">
-          <button class="btn" id="btnPrevWeekDash">← Semana anterior</button>
-          <button class="btn" id="btnNextWeekDash">Semana siguiente →</button>
-        </div>
+      <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
         <div class="muted" id="weekRange">Semana</div>
-        <div class="row" style="gap:8px;align-items:center">
+        <div class="row" style="display:flex;gap:8px;align-items:center">
           <span class="muted">Mes:</span>
           <input id="monthPicker" type="month" />
         </div>
@@ -138,7 +148,7 @@
       </div>
     </section>
 
-    <!-- Calendario -->
+    <!-- ============== CALENDARIO ============== -->
     <section id="viewCalendar" style="display:none">
       <div class="card" style="display:flex;gap:8px;align-items:center;justify-content:space-between">
         <div>
@@ -146,16 +156,16 @@
           <button class="btn" id="btnNextWeek">Semana siguiente →</button>
         </div>
         <div class="muted" id="weekLabel">Semana</div>
-        <div class="row" style="gap:8px;align-items:center">
+        <div style="display:flex;gap:8px;align-items:center">
           <span class="muted">Unidad:</span>
-          <select id="unitFilter"></select>
+          <select id="unitFilter"><option value="__ALL__">(todas)</option></select>
         </div>
       </div>
-      <div id="calendarContainer" class="calendar" style="margin-top:12px"></div>
+      <div id="calendarContainer" class="calendar" style="margin-top:12px">Cargando…</div>
       <div class="footer">© Flexibility by Systemgroup</div>
     </section>
 
-    <!-- Equipos (igual a tu versión anterior) -->
+    <!-- ============== EQUIPOS ============== -->
     <section id="viewTeams" style="display:none" class="grid">
       <div class="card">
         <h3 class="title">Crear miembro</h3>
@@ -191,31 +201,44 @@
   </div>
 
   <script>
+    // ================== CONFIG SUPABASE ==================
     const SUPABASE_URL  = "https://tkrlcuqbujzwqhweblto.supabase.co";
     const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRrcmxjdXFidWp6d3Fod2VibHRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5MTUzODIsImV4cCI6MjA3MDQ5MTM4Mn0.PjwSfBreunYD1RyiOUeCzJKIug7Wc7YSaqZFzMJXCxg";
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-    const state = { user:null, orgId:null, weekStart:null, monthCursor:null };
-    const $ = s => document.querySelector(s);
-    const show = id=>{
+    // ================== STATE ==================
+    const state = {
+      user: null,
+      orgId: null,
+      weekStart: null, // Monday
+      monthRef: null,  // Date del primer día del mes seleccionado (dashboard)
+      unitFilter: "__ALL__"
+    };
+
+    // Helpers DOM
+    const $ = (sel)=>document.querySelector(sel);
+    const show = id => {
       ['viewAuth','viewDashboard','viewCalendar','viewTeams'].forEach(v=>{
-        const el = $('#'+v); if(el) el.style.display = (v===id?'':'none');
+        const el = $('#'+v);
+        if(!el) return;
+        el.style.display = (v===id?'':'none');
       });
+      // tabs
       ['tabDash','tabCal','tabTeam'].forEach(t=>$('#'+t).classList.remove('active'));
       if(id==='viewDashboard') $('#tabDash').classList.add('active');
       if(id==='viewCalendar')  $('#tabCal').classList.add('active');
       if(id==='viewTeams')     $('#tabTeam').classList.add('active');
     };
 
-    // -------- Auth ----------
+    // ================== AUTH (email/contraseña) ==================
     $('#btnDoLogin').onclick = async ()=>{
       const email = $('#authEmail').value.trim();
       const pass  = $('#authPass').value;
       setAuthError('');
       if(!email || !pass) return setAuthError('Escribe correo y contraseña.');
       const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-      if(error) return setAuthError('No se pudo iniciar sesión: '+error.message);
-      bootstrap();
+      if(error){ setAuthError('No se pudo iniciar sesión: '+error.message); return; }
+      await bootstrap();
     };
     $('#btnDoSignup').onclick = async ()=>{
       const email = $('#authEmail').value.trim();
@@ -223,269 +246,334 @@
       setAuthError('');
       if(!email || !pass) return setAuthError('Escribe correo y contraseña.');
       const { error } = await sb.auth.signUp({ email, password: pass });
-      if(error) return setAuthError('No se pudo crear la cuenta: '+error.message);
+      if(error){ setAuthError('No se pudo crear la cuenta: '+error.message); return; }
       alert('Cuenta creada. Si tu proyecto requiere confirmación, revisa tu correo.');
-      bootstrap();
+      await bootstrap();
     };
-    $('#btnReset').onclick = async ()=>{
-      const email = prompt('Escribe tu correo para resetear contraseña:');
-      if(!email) return;
+    $('#btnForgot').onclick = async ()=>{
+      const email = $('#authEmail').value.trim();
+      if(!email) return setAuthError('Escribe tu correo y vuelve a presionar “Olvidé mi contraseña”.');
       const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
-      if(error) alert('No se pudo enviar el correo: '+error.message);
-      else alert('Te enviamos un correo con instrucciones.');
+      if(error) setAuthError('No se pudo enviar el correo: '+error.message);
+      else alert('Te enviamos un correo para restablecer tu contraseña.');
     };
     function setAuthError(msg){
       const box = $('#authError');
       if(!msg){ box.style.display='none'; box.textContent=''; }
       else { box.textContent = msg; box.style.display='block'; }
     }
-    $('#btnLogout').onclick = async()=>{ await sb.auth.signOut(); state.user=null; $('#sessionInfo').textContent='Sesión: —'; show('viewAuth'); };
 
-    // -------- Nav ----------
-    $('#tabDash').onclick = ()=>{ show('viewDashboard'); loadDashboard(); };
-    $('#tabCal').onclick  = ()=>{ show('viewCalendar');  loadCalendar();  };
-    $('#tabTeam').onclick = ()=>{ show('viewTeams');     loadMembers();   };
+    $('#btnLogout').onclick = async()=>{
+      await sb.auth.signOut();
+      state.user = null;
+      $('#sessionInfo').textContent = 'Sesión: —';
+      show('viewAuth');
+    };
 
-    // -------- Init ----------
+    // ================== NAV ==================
+    $('#tabDash').onclick = async ()=>{ show('viewDashboard'); await loadDashboard(); };
+    $('#tabCal').onclick  = async ()=>{ show('viewCalendar');  await initCalendar();  };
+    $('#tabTeam').onclick = async ()=>{ show('viewTeams');     await loadMembers();   };
+
+    // ================== INIT ==================
     bootstrap();
     async function bootstrap(){
-      const { data:{user} } = await sb.auth.getUser();
-      if(!user){ show('viewAuth'); return; }
-      state.user=user; $('#sessionInfo').textContent = 'Sesión: ' + (user.email||user.id);
+      const { data:{ user } } = await sb.auth.getUser();
+      if(!user){
+        show('viewAuth');
+        return;
+      }
+      state.user = user;
+      $('#sessionInfo').textContent = 'Sesión: ' + (user.email || user.id);
 
       const { data:prof } = await sb.from('profiles').select('org_id').eq('id', user.id).maybeSingle();
       state.orgId = prof?.org_id || null;
 
-      const today=new Date();
-      const monday=new Date(today);
+      // semana actual (lunes)
+      const today = new Date();
+      const monday = new Date(today);
       monday.setDate(today.getDate() - ((today.getDay()+6)%7));
-      state.weekStart=monday;
-      state.monthCursor=new Date(today.getFullYear(), today.getMonth(), 1);
+      state.weekStart = monday;
 
-      const mp=$('#monthPicker');
-      mp.value=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
-      mp.addEventListener('change', ()=>{
-        const [y,m]=mp.value.split('-').map(Number);
-        state.monthCursor=new Date(y,m-1,1);
+      // mes actual
+      state.monthRef = new Date(monday.getFullYear(), monday.getMonth(), 1);
+      $('#monthPicker').value = `${state.monthRef.getFullYear()}-${String(state.monthRef.getMonth()+1).padStart(2,'0')}`;
+      $('#monthPicker').addEventListener('change', ()=>{
+        const [y,m] = $('#monthPicker').value.split('-').map(Number);
+        state.monthRef = new Date(y, m-1, 1);
         loadDashboard();
       });
 
-      $('#btnPrevWeekDash').onclick=()=>{ shiftWeek(-7); loadDashboard(); };
-      $('#btnNextWeekDash').onclick=()=>{ shiftWeek(+7); loadDashboard(); };
-
-      show('viewDashboard'); loadDashboard();
+      show('viewDashboard');
+      await loadDashboard();
     }
 
-    // -------- Dashboard ----------
+    // ================== DASHBOARD ==================
     async function loadDashboard(){
-      const ws=weekStart(), we=weekEnd();
-      $('#weekRange').textContent=`Semana del ${fmtDate(ws)} al ${fmtDate(we)}`;
+      const ws = weekStart(), we = weekEnd();
+      $('#weekRange').textContent = `Semana del ${fmtDate(ws)} al ${fmtDate(we)}`;
 
-      const ym = state.monthCursor || new Date(ws.getFullYear(), ws.getMonth(), 1);
-      $('#monthLabel').textContent = ym.toLocaleDateString('es-CO',{month:'long', year:'numeric'});
+      const ym = new Date(state.monthRef.getFullYear(), state.monthRef.getMonth(), 1);
+      $('#monthLabel').textContent = ym.toLocaleDateString('es-ES',{month:'long', year:'numeric'});
 
       if(!state.orgId){ setKpis(null); drawUnits([]); return; }
 
-      const { data:attW } = await sb
+      // KPIs semana por org
+      const { data:attW, error:e1 } = await sb
         .from('attendance')
         .select('location')
         .gte('work_date', iso(ws))
         .lte('work_date', iso(we))
         .eq('org_id', state.orgId)
         .limit(2000);
-      const base=(attW||[]).filter(r=>r.location==='home'||r.location==='office');
-      const total = base.length||0;
-      const home  = base.filter(r=>r.location==='home').length;
-      const office= base.filter(r=>r.location==='office').length;
-      setKpis({home: total?Math.round(home*100/total):0, office: total?Math.round(office*100/total):0});
+      if(e1){ console.error(e1); setKpis(null); }
+      else{
+        const total = attW.length || 1;
+        const home = attW.filter(r=>r.location==='home').length;
+        const office= attW.filter(r=>r.location==='office').length;
+        setKpis({ home: Math.round(home*100/total), office: Math.round(office*100/total) });
+      }
 
-      const monthFrom=iso(new Date(ym.getFullYear(), ym.getMonth(), 1));
-      const monthTo  =iso(new Date(ym.getFullYear(), ym.getMonth()+1, 0));
-      const { data:rows } = await sb
+      // Resumen por unidad del mes (según mes seleccionado)
+      const monthFrom = iso(new Date(state.monthRef.getFullYear(), state.monthRef.getMonth(), 1));
+      const monthTo   = iso(new Date(state.monthRef.getFullYear(), state.monthRef.getMonth()+1, 0));
+      const { data:rows, error:e2 } = await sb
         .from('attendance')
         .select('location, team_members(unit)')
         .eq('org_id', state.orgId)
-        .gte('work_date', monthFrom).lte('work_date', monthTo).limit(5000);
-      const by={};
-      for(const r of (rows||[])){
-        const u=r.team_members?.unit||'—';
-        if(!by[u]) by[u]={unit:u,home:0,office:0,total:0};
-        if(r.location==='home') by[u].home++;
-        else if(r.location==='office') by[u].office++;
-        if(r.location==='home'||r.location==='office') by[u].total++;
+        .gte('work_date', monthFrom)
+        .lte('work_date', monthTo)
+        .limit(5000);
+      if(e2){ console.error(e2); drawUnits([]); }
+      else{
+        const byUnit = {};
+        for(const r of rows){
+          const u = r.team_members?.unit || '—';
+          if(!byUnit[u]) byUnit[u] = { unit:u, home:0, office:0, total:0 };
+          if(r.location==='home') byUnit[u].home++;
+          else if(r.location==='office') byUnit[u].office++;
+          byUnit[u].total++;
+        }
+        const data = Object.values(byUnit).map(x=>{
+          const total = x.total || 1;
+          return { unit:x.unit, pHome:Math.round(x.home*100/total), pOffice:Math.round(x.office*100/total), total:x.total };
+        }).sort((a,b)=>a.unit.localeCompare(b.unit));
+        drawUnits(data);
       }
-      drawUnits(Object.values(by).map(x=>{
-        const t=x.total||1;
-        return {unit:x.unit,pHome:Math.round(x.home*100/t),pOffice:Math.round(x.office*100/t),total:x.total};
-      }).sort((a,b)=>a.unit.localeCompare(b.unit)));
     }
-    function setKpis(x){ if(!x){$('#kpiHome').textContent='—';$('#kpiOffice').textContent='—';return;} $('#kpiHome').textContent=x.home+'%'; $('#kpiOffice').textContent=x.office+'%'; }
+    function setKpis(x){
+      if(!x){ $('#kpiHome').textContent='—'; $('#kpiOffice').textContent='—'; return; }
+      $('#kpiHome').textContent = x.home + '%';
+      $('#kpiOffice').textContent = x.office + '%';
+    }
     function drawUnits(list){
-      const tbody=$('#unitsBody'); tbody.innerHTML='';
-      if(!list.length){ tbody.innerHTML=`<tr class="tr"><td class="td" colspan="4">—</td></tr>`; return; }
+      const tbody = $('#unitsBody'); tbody.innerHTML='';
+      if(!list.length){ tbody.innerHTML = `<tr class="tr"><td class="td" colspan="4">—</td></tr>`; return; }
       for(const r of list){
-        const tr=document.createElement('tr'); tr.className='tr';
-        tr.innerHTML=`<td class="td">${r.unit}</td><td class="td">${r.pHome}%</td><td class="td">${r.pOffice}%</td><td class="td">${r.total}</td>`;
+        const tr = document.createElement('tr'); tr.className='tr';
+        tr.innerHTML = `
+          <td class="td">${r.unit}</td>
+          <td class="td">${r.pHome}%</td>
+          <td class="td">${r.pOffice}%</td>
+          <td class="td">${r.total}</td>`;
         tbody.appendChild(tr);
       }
     }
 
-    // -------- Calendario ----------
-    $('#btnPrevWeek').onclick=()=>{ shiftWeek(-7); loadCalendar(); };
-    $('#btnNextWeek').onclick=()=>{ shiftWeek(+7); loadCalendar(); };
-    function shiftWeek(delta){ const d=weekStart(); d.setDate(d.getDate()+delta); state.weekStart=d; }
+    // ================== CALENDARIO ==================
+    $('#btnPrevWeek').onclick = ()=>{ shiftWeek(-7); initCalendar(); };
+    $('#btnNextWeek').onclick = ()=>{ shiftWeek(+7); initCalendar(); };
+    $('#unitFilter').addEventListener('change', ()=>{ state.unitFilter = $('#unitFilter').value; initCalendar(); });
+
+    function shiftWeek(delta){ const d = weekStart(); d.setDate(d.getDate()+delta); state.weekStart = d; }
     function weekStart(){ return new Date(state.weekStart); }
-    function weekEnd(){ const d=weekStart(); d.setDate(d.getDate()+6); return d; }
-    const addDays=(d,i)=>{ const x=new Date(d); x.setDate(x.getDate()+i); return x; };
+    function weekEnd(){ const d = weekStart(); d.setDate(d.getDate()+6); return d; }
 
-    async function loadCalendar(){
-      const cont=$('#calendarContainer'); cont.innerHTML='Cargando…';
-      const ws=weekStart(), we=weekEnd();
-      $('#weekLabel').textContent=`Semana del ${fmtDate(ws)} al ${fmtDate(we)}`;
-      if(!state.orgId){ cont.innerHTML='<div class="error">No hay organización</div>'; return; }
+    async function initCalendar(){
+      const cont = $('#calendarContainer');
+      cont.textContent = 'Cargando…';
+      const ws = weekStart(), we = weekEnd();
+      $('#weekLabel').textContent = `Semana del ${fmtDate(ws)} al ${fmtDate(we)}`;
 
-      await populateUnitFilter();
+      if(!state.orgId){ cont.innerHTML = '<div class="error">No hay organización</div>'; return; }
 
-      // Construimos SIEMPRE los días lunes→sábado a partir del lunes calculado
-      const days = Array.from({length:6},(_,i)=> iso(addDays(ws,i))); // 6 días
-      const daysSet=new Set(days);
+      // Unidades (para filtro)
+      const { data:unitsData } = await sb.from('team_members')
+        .select('unit').eq('org_id', state.orgId).eq('active', true);
+      const units = Array.from(new Set((unitsData||[]).map(u=>u.unit||'—'))).sort();
+      const sel = $('#unitFilter');
+      const prev = sel.value || "__ALL__";
+      sel.innerHTML = `<option value="__ALL__">(todas)</option>` + units.map(u=>`<option>${u}</option>`).join('');
+      sel.value = prev;
+      state.unitFilter = sel.value;
 
-      // Traemos/armamos los datos (independiente de RPC)
-      let members=[], atts=[];
-      const { data:mData, error:em } = await sb.from('team_members')
-        .select('id, full_name, unit').eq('org_id', state.orgId).eq('active',true).order('full_name');
-      if(em){ cont.innerHTML=`<div class="error">${em.message}</div>`; return; }
-      members=mData||[];
-
-      const { data:aData, error:ea } = await sb.from('attendance')
-        .select('member_id, work_date, location')
-        .eq('org_id', state.orgId)
-        .gte('work_date', iso(ws)).lte('work_date', iso(we)).limit(2000);
-      if(ea){ cont.innerHTML=`<div class="error">${ea.message}</div>`; return; }
-      atts=aData||[];
-
-      // Indexar en estructura por miembro (ignora cualquier fecha fuera de lunes→sábado)
-      const by=new Map();
-      for(const m of members){
-        by.set(m.id,{ id:m.id, full_name:m.full_name, unit:m.unit||'—', days:Object.fromEntries(days.map(s=>[s,null])) });
-      }
-      for(const a of atts){
-        if(!daysSet.has(a.work_date)) continue;
-        const row=by.get(a.member_id);
-        if(row) row.days[a.work_date]=a.location ?? null;
-      }
-
-      // Filtro unidad
-      const selectedUnit=$('#unitFilter').value||'';
-      const rows=[...by.values()].filter(r=>!selectedUnit || r.unit===selectedUnit);
-
-      cont.innerHTML=renderCalendarGrid(rows, days);
+      await loadCalendar();
     }
 
-    async function populateUnitFilter(){
-      const sel=$('#unitFilter');
-      if(sel.options.length) return;
-      const { data } = await sb.from('team_members')
-        .select('unit').eq('org_id', state.orgId).not('unit','is',null);
-      const units=Array.from(new Set((data||[]).map(r=>r.unit))).sort();
-      sel.innerHTML=`<option value="">(todas)</option>`+units.map(u=>`<option>${u}</option>`).join('');
-      sel.onchange=()=>loadCalendar();
+    async function loadCalendar(){
+      const cont = $('#calendarContainer');
+      cont.textContent = 'Cargando…';
+      const ws = weekStart(), we = weekEnd();
+      const days = rangeDaysNoSunday(ws,we).map(d=>iso(d)); // <-- SIN DOMINGO
+
+      // miembros activos (con filtro por unidad si aplica)
+      let qMembers = sb.from('team_members')
+        .select('id, full_name, unit')
+        .eq('org_id', state.orgId)
+        .eq('active', true)
+        .order('full_name');
+
+      if(state.unitFilter !== "__ALL__"){
+        qMembers = qMembers.eq('unit', state.unitFilter);
+      }
+      const { data:members, error:em } = await qMembers;
+      if(em){ cont.innerHTML = `<div class="error">${em.message}</div>`; return; }
+
+      const { data:atts, error:ea } = await sb.from('attendance')
+        .select('member_id, work_date, location')
+        .eq('org_id', state.orgId)
+        .gte('work_date', iso(ws)).lte('work_date', iso(we))
+        .limit(5000);
+      if(ea){ cont.innerHTML = `<div class="error">${ea.message}</div>`; return; }
+
+      const rows=[];
+      for(const m of members){
+        const map = Object.fromEntries(days.map(x=>[x,null]));
+        for(const a of atts){
+          if(a.member_id===m.id && map.hasOwnProperty(a.work_date)){
+            map[a.work_date] = a.location; // home|office o null si no hay
+          }
+        }
+        rows.push({ id:m.id, full_name:m.full_name, unit:m.unit||'—', days:map });
+      }
+
+      cont.innerHTML = renderCalendarGrid(rows, days);
     }
 
     function renderCalendarGrid(rows, days){
       const header = `
-        <div class="cal-head" style="grid-template-columns:260px repeat(${days.length},1fr)">
+        <div class="cal-head">
           <div class="cell head">Miembro</div>
           ${days.map(d=>`<div class="cell head">${fmtDay(d)}</div>`).join('')}
         </div>`;
       const body = rows.map(r=>`
-        <div class="cal-row" style="grid-template-columns:260px repeat(${days.length},1fr)">
+        <div class="cal-row">
           <div class="cell member">
             <div class="member-name">${r.full_name}</div>
             <div class="member-unit">${r.unit}</div>
           </div>
-          ${days.map(d=>`
-            <button class="cell day" data-member-id="${r.id}" data-date="${d}">
-              ${pill(r.days[d])}
-            </button>`).join('')}
+          ${days.map(d=>{
+            const loc = r.days[d] || null; // home|office|null
+            return `
+            <button class="cell day"
+              data-member-id="${r.id}"
+              data-date="${d}"
+              data-status="${loc?loc:'none'}">
+              ${pill(loc)}
+            </button>`;
+          }).join('')}
         </div>`).join('');
       return header + body;
     }
 
-    // Toggle 3 estados: home -> office -> vacío(borrar) -> home
+    // Toggle con 3 estados: home -> office -> none (elimina registro) -> home
     document.addEventListener('click', async (e)=>{
-      const btn=e.target.closest('.cell.day'); if(!btn) return;
+      const btn = e.target.closest('.cell.day'); if(!btn) return;
       if(!state.orgId) return;
-
-      const id=btn.dataset.memberId;
-      const d =btn.dataset.date;
-      const txt=btn.textContent.trim();
-      const current = txt==='Casa' ? 'home' : txt==='Oficina' ? 'office' : 'none';
+      const id = btn.dataset.memberId, d = btn.dataset.date;
+      const current = btn.dataset.status || 'none';
       const next = current==='home' ? 'office' : current==='office' ? 'none' : 'home';
 
       if(next==='none'){
-        // eliminar registro (estado vacío)
-        const { error } = await sb.from('attendance').delete()
-          .eq('org_id', state.orgId).eq('member_id', id).eq('work_date', d);
+        // eliminar registro
+        const { error } = await sb.from('attendance')
+          .delete()
+          .eq('org_id', state.orgId)
+          .eq('member_id', id)
+          .eq('work_date', d);
         if(error){ alert('No se pudo limpiar: '+error.message); return; }
       }else{
-        // upsert home/office
-        const { error } = await sb.from('attendance').upsert(
-          { org_id:state.orgId, member_id:id, work_date:d, location:next },
-          { onConflict:'org_id,member_id,work_date' }
-        );
+        // upsert con home|office
+        const { error } = await sb.from('attendance').upsert({
+          org_id: state.orgId, member_id:id, work_date:d, location: next
+        }, { onConflict: 'org_id,member_id,work_date' });
         if(error){ alert('No se pudo marcar: '+error.message); return; }
       }
-      loadCalendar();
+      // Actualizar visual sin recargar todo
+      btn.dataset.status = next;
+      btn.innerHTML = pill(next==='none'?null:next);
     });
 
-    // -------- Equipos (igual) ----------
+    // ================== EQUIPOS ==================
     $('#btnCreate').onclick = async ()=>{
       if(!state.orgId) return alert('No hay organización');
-      const name=$('#inName').value.trim();
-      const email=$('#inEmail').value.trim()||null;
-      const unit=$('#inUnit').value.trim()||null;
+      const name = $('#inName').value.trim();
+      const email= $('#inEmail').value.trim() || null;
+      const unit = $('#inUnit').value.trim() || null;
       if(!name) return alert('Nombre es requerido');
-      const { error } = await sb.from('team_members').insert({ org_id:state.orgId, full_name:name, email, unit, active:true });
+      const { error } = await sb.from('team_members').insert({ org_id: state.orgId, full_name:name, email, unit, active:true });
       if(error) return alert('Error creando miembro: '+error.message);
       $('#inName').value=''; $('#inEmail').value=''; $('#inUnit').value='';
-      loadMembers(); alert('Miembro creado');
+      await loadMembers();
+      alert('Miembro creado');
     };
-    $('#btnRefreshMembers').onclick=()=>loadMembers();
+    $('#btnRefreshMembers').onclick = ()=>loadMembers();
 
     async function loadMembers(){
-      if(!state.orgId){ $('#membersBody').innerHTML=`<tr class="tr"><td class="td" colspan="5">—</td></tr>`; return; }
-      const q=$('#inFilter').value.trim();
-      let req=sb.from('team_members').select('id, full_name, unit, email, active').eq('org_id', state.orgId).order('full_name');
-      if(q) req=req.ilike('full_name', `%${q}%`);
+      if(!state.orgId){ $('#membersBody').innerHTML = `<tr class="tr"><td class="td" colspan="5">—</td></tr>`; return; }
+      const q = $('#inFilter').value.trim();
+      let req = sb.from('team_members').select('id, full_name, unit, email, active').eq('org_id', state.orgId).order('full_name');
+      if(q) req = req.ilike('full_name', `%${q}%`);
       const { data, error } = await req;
-      const body=$('#membersBody'); body.innerHTML='';
-      if(error){ body.innerHTML=`<tr class="tr"><td class="td" colspan="5">${error.message}</td></tr>`; return; }
-      if(!data.length){ body.innerHTML=`<tr class="tr"><td class="td" colspan="5">—</td></tr>`; return; }
+      const body = $('#membersBody'); body.innerHTML='';
+      if(error){ body.innerHTML = `<tr class="tr"><td class="td" colspan="5">${error.message}</td></tr>`; return; }
+      if(!data.length){ body.innerHTML = `<tr class="tr"><td class="td" colspan="5">—</td></tr>`; return; }
       for(const m of data){
-        const tr=document.createElement('tr'); tr.className='tr';
-        tr.innerHTML=`
+        const tr = document.createElement('tr'); tr.className='tr';
+        tr.innerHTML = `
           <td class="td">${m.full_name}</td>
           <td class="td">${m.unit||'—'}</td>
           <td class="td">${m.email||'—'}</td>
           <td class="td">${m.active?'Sí':'No'}</td>
-          <td class="td"><button class="btn" data-act="toggle" data-id="${m.id}">${m.active?'Desactivar':'Activar'}</button></td>`;
+          <td class="td">
+            <button class="btn" data-act="toggle" data-id="${m.id}">${m.active?'Desactivar':'Activar'}</button>
+          </td>`;
         body.appendChild(tr);
       }
     }
+
     document.addEventListener('click', async (e)=>{
-      const b=e.target.closest('button[data-act="toggle"]'); if(!b) return;
-      const id=b.dataset.id;
+      const b = e.target.closest('button[data-act="toggle"]'); if(!b) return;
+      const id = b.dataset.id;
       const { data:cur } = await sb.from('team_members').select('active').eq('id', id).maybeSingle();
-      const { error } = await sb.from('team_members').update({ active:!cur?.active }).eq('id', id);
+      const { error } = await sb.from('team_members').update({ active: !cur?.active }).eq('id', id);
       if(error) return alert('No se pudo actualizar: '+error.message);
       loadMembers();
     });
 
-    // -------- Utils ----------
+    // ================== UTILS ==================
     function iso(d){ const x=new Date(d); x.setHours(0,0,0,0); return x.toISOString().slice(0,10); }
-    function fmtDate(d){ const dd=(d instanceof Date)?d:new Date(d); return dd.toLocaleDateString('es-CO',{weekday:'short', day:'2-digit', month:'2-digit'}).replace('.',''); }
-    function fmtDay(isoStr){ return fmtDate(new Date(isoStr)); }
+    function fmtDate(d){
+      const dd = (d instanceof Date)? d : new Date(d);
+      return dd.toLocaleDateString('es-ES',{weekday:'short', day:'2-digit', month:'2-digit'}).replace('.','');
+    }
+    function fmtDay(isoStr){
+      const dd = new Date(isoStr);
+      return dd.toLocaleDateString('es-ES',{weekday:'short', day:'2-digit', month:'2-digit'}).replace('.','');
+    }
+    function rangeDaysNoSunday(from,to){
+      const out=[]; const d=new Date(from);
+      while(d<=to){
+        if(d.getDay()!==0) out.push(new Date(d)); // 0 = Domingo (no se muestra)
+        d.setDate(d.getDate()+1);
+      }
+      return out;
+    }
+    function pill(loc){
+      if(loc==='home')   return `<span class="pill home">Casa</span>`;
+      if(loc==='office') return `<span class="pill office">Oficina</span>`;
+      return `<span class="pill muted">—</span>`;
+    }
   </script>
 </body>
 </html>
