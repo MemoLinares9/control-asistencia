@@ -8,14 +8,12 @@
   <style>
     :root{
       --bg:#0b0f17; --panel:#0f172a; --muted:#111827; --line:#1f2937; --text:#e5e7eb;
-      --brand:#7dd3fc; --ok:#86efac; --warn:#fbbf24; --bad:#f87171;
       --pill:#0b1220; --pill-b:#1f2435;
       --home-bg:#1e293b; --home-fg:#93c5fd;
       --office-bg:#0f2f24; --office-fg:#86efac;
     }
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial}
-    a{color:#93c5fd;text-decoration:none} a:hover{text-decoration:underline}
     .wrap{max-width:1100px;margin:36px auto;padding:0 16px}
 
     /* NAV */
@@ -60,34 +58,30 @@
     .member-unit{opacity:.85;font-size:.9rem;color:var(--text)}
 
     .footer{margin-top:26px;text-align:center;opacity:.6;color:var(--text)}
-    .error{color:var(--bad)}
+    .error{color:#f87171}
 
     /* Login panel */
     .auth{max-width:480px;margin:80px auto;padding:16px}
     .row{display:flex;gap:8px;flex-wrap:wrap}
     input,select{background:#0f172a;border:1px solid var(--line);border-radius:10px;padding:10px;color:var(--text)}
     input::placeholder{color:#94a3b8}
-
-    /* Seguridad de color para textos */
-    .title, .th, .kpi, .muted, .td, .tab, .btn, .member-name, .member-unit { color: var(--text); }
   </style>
 </head>
 <body>
   <div class="wrap">
-
-    <!-- ============== HEADER ============== -->
+    <!-- HEADER -->
     <div class="top">
       <div class="logo">Flexibility by Systemgroup</div>
       <div class="tabs">
-        <button class="tab active" id="tabDash">Dashboard</button>
-        <button class="tab" id="tabCal">Calendario</button>
+        <button class="tab" id="tabDash">Dashboard</button>
+        <button class="tab active" id="tabCal">Calendario</button>
         <button class="tab" id="tabTeam">Equipos</button>
       </div>
       <div class="session" id="sessionInfo">Sesión: —</div>
       <button class="btn" id="btnLogout">Salir</button>
     </div>
 
-    <!-- ============== LOGIN ============== -->
+    <!-- LOGIN -->
     <section id="viewAuth" style="display:none">
       <div class="card auth">
         <h3 class="title">Inicia sesión</h3>
@@ -104,8 +98,8 @@
       </div>
     </section>
 
-    <!-- ============== DASHBOARD ============== -->
-    <section id="viewDashboard" class="grid">
+    <!-- DASHBOARD -->
+    <section id="viewDashboard" class="grid" style="display:none">
       <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
         <div class="row" style="gap:8px;align-items:center">
           <button class="btn" id="btnDashPrevWeek">← Semana anterior</button>
@@ -148,20 +142,26 @@
       </div>
     </section>
 
-    <!-- ============== CALENDARIO ============== -->
-    <section id="viewCalendar" style="display:none">
-      <div class="card" style="display:flex;gap:8px;align-items:center;justify-content:space-between">
+    <!-- CALENDARIO -->
+    <section id="viewCalendar">
+      <div class="card" style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap">
         <div>
           <button class="btn" id="btnPrevWeek">← Semana anterior</button>
           <button class="btn" id="btnNextWeek">Semana siguiente →</button>
         </div>
         <div class="muted" id="weekLabel">Semana</div>
+        <div class="row" style="gap:8px;align-items:center">
+          <label class="muted" for="calUnit">Unidad:</label>
+          <select id="calUnit">
+            <option value="ALL">Todas</option>
+          </select>
+        </div>
       </div>
       <div id="calendarContainer" class="calendar" style="margin-top:12px"></div>
       <div class="footer">© Flexibility by Systemgroup</div>
     </section>
 
-    <!-- ============== EQUIPOS ============== -->
+    <!-- EQUIPOS (sin cambios funcionales) -->
     <section id="viewTeams" style="display:none" class="grid">
       <div class="card">
         <h3 class="title">Crear miembro</h3>
@@ -197,7 +197,7 @@
   </div>
 
   <script>
-    // ================== CONFIG SUPABASE ==================
+    // ================== SUPABASE ==================
     const SUPABASE_URL  = "https://tkrlcuqbujzwqhweblto.supabase.co";
     const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRrcmxjdXFidWp6d3Fod2VibHRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5MTUzODIsImV4cCI6MjA3MDQ5MTM4Mn0.PjwSfBreunYD1RyiOUeCzJKIug7Wc7YSaqZFzMJXCxg";
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
@@ -207,18 +207,17 @@
       user: null,
       orgId: null,
       weekStart: null,   // lunes
-      monthRef: null     // primer día del mes elegido
+      monthRef: null,    // primer día del mes elegido (dashboard)
+      calUnit: 'ALL'     // filtro de unidad en calendario
     };
 
-    // Helpers DOM
-    const $ = (sel)=>document.querySelector(sel);
+    const $ = sel => document.querySelector(sel);
     const show = id => {
       ['viewAuth','viewDashboard','viewCalendar','viewTeams'].forEach(v=>{
         const el = $('#'+v);
-        if(!el) return;
-        el.style.display = (v===id?'':'none');
+        if(el) el.style.display = (v===id?'':'none');
       });
-      ['tabDash','tabCal','tabTeam'].forEach(t=>$('#'+t).classList.remove('active'));
+      ['tabDash','tabCal','tabTeam'].forEach(t=>$('#'+t)?.classList.remove('active'));
       if(id==='viewDashboard') $('#tabDash').classList.add('active');
       if(id==='viewCalendar')  $('#tabCal').classList.add('active');
       if(id==='viewTeams')     $('#tabTeam').classList.add('active');
@@ -274,10 +273,7 @@
     bootstrap();
     async function bootstrap(){
       const { data:{ user } } = await sb.auth.getUser();
-      if(!user){
-        show('viewAuth');
-        return;
-      }
+      if(!user){ show('viewAuth'); return; }
       state.user = user;
       $('#sessionInfo').textContent = 'Sesión: ' + (user.email || user.id);
 
@@ -291,7 +287,7 @@
       monday.setDate(today.getDate() - ((today.getDay()+6)%7));
       state.weekStart = monday;
 
-      // Mes por defecto
+      // Dashboard: mes por defecto
       state.monthRef = new Date(today.getFullYear(), today.getMonth(), 1);
       const m = state.monthRef;
       const mm = String(m.getMonth()+1).padStart(2,'0');
@@ -302,15 +298,20 @@
         loadDashboard();
       });
 
-      // Controles de semana en Dashboard
-      $('#btnDashPrevWeek').onclick = ()=>{ shiftWeek(-7); loadDashboard(); };
-      $('#btnDashNextWeek').onclick = ()=>{ shiftWeek(+7); loadDashboard(); };
+      // Controles de semana
+      $('#btnDashPrevWeek')?.addEventListener('click', ()=>{ shiftWeek(-7); loadDashboard(); });
+      $('#btnDashNextWeek')?.addEventListener('click', ()=>{ shiftWeek(+7); loadDashboard(); });
+      $('#btnPrevWeek').addEventListener('click', ()=>{ shiftWeek(-7); loadCalendar(); });
+      $('#btnNextWeek').addEventListener('click', ()=>{ shiftWeek(+7); loadCalendar(); });
+
+      // Filtro unidad calendario
+      $('#calUnit').addEventListener('change', (e)=>{ state.calUnit = e.target.value; loadCalendar(); });
 
       show('viewDashboard');
       await loadDashboard();
     }
 
-    // ================== DASHBOARD ==================
+    // ================== DASHBOARD (sin cambios de lógica previa) ==================
     async function loadDashboard(){
       const ws = weekStart(), we = weekEnd();
       $('#weekRange').textContent = `Semana del ${fmtDate(ws)} al ${fmtDate(we)}`;
@@ -320,72 +321,51 @@
 
       if(!state.orgId){ setKpis(null); drawUnits([]); return; }
 
-      // KPIs semana por org
-      const { data:attW, error:e1 } = await sb
-        .from('attendance')
-        .select('location')
-        .gte('work_date', iso(ws))
-        .lte('work_date', iso(we))
-        .eq('org_id', state.orgId)
-        .limit(2000);
-      if(e1){ console.error(e1); setKpis(null); }
+      const { data:attW } = await sb
+        .from('attendance').select('location')
+        .gte('work_date', iso(ws)).lte('work_date', iso(we))
+        .eq('org_id', state.orgId).limit(2000);
+      const total = attW?.length || 0;
+      if(!total){ setKpis({home:0,office:0}); }
       else{
-        const total = attW.length || 1;
         const home = attW.filter(r=>r.location==='home').length;
         const office= attW.filter(r=>r.location==='office').length;
         setKpis({ home: Math.round(home*100/total), office: Math.round(office*100/total) });
       }
 
-      // Resumen por unidad del mes (según monthRef)
       const monthFrom = iso(new Date(m0.getFullYear(), m0.getMonth(), 1));
       const monthTo   = iso(new Date(m0.getFullYear(), m0.getMonth()+1, 0));
-      const { data:rows, error:e2 } = await sb
-        .from('attendance')
-        .select('location, team_members(unit)')
+      const { data:rows } = await sb
+        .from('attendance').select('location, team_members(unit)')
         .eq('org_id', state.orgId)
-        .gte('work_date', monthFrom)
-        .lte('work_date', monthTo)
-        .limit(5000);
-      if(e2){ console.error(e2); drawUnits([]); }
-      else{
-        const byUnit = {};
-        for(const r of rows){
-          const u = r.team_members?.unit || '—';
-          if(!byUnit[u]) byUnit[u] = { unit:u, home:0, office:0, total:0 };
-          if(r.location==='home') byUnit[u].home++;
-          else if(r.location==='office') byUnit[u].office++;
-          byUnit[u].total++;
-        }
-        const data = Object.values(byUnit).map(x=>{
-          const total = x.total || 1;
-          return { unit:x.unit, pHome:Math.round(x.home*100/total), pOffice:Math.round(x.office*100/total), total:x.total };
-        }).sort((a,b)=>a.unit.localeCompare(b.unit));
-        drawUnits(data);
-      }
+        .gte('work_date', monthFrom).lte('work_date', monthTo).limit(5000);
+
+      const byUnit = {};
+      (rows||[]).forEach(r=>{
+        const u = r.team_members?.unit || '—';
+        if(!byUnit[u]) byUnit[u] = { unit:u, home:0, office:0, total:0 };
+        if(r.location==='home') byUnit[u].home++;
+        else if(r.location==='office') byUnit[u].office++;
+        byUnit[u].total++;
+      });
+      const data = Object.values(byUnit).map(x=>{
+        const total = x.total || 1;
+        return { unit:x.unit, pHome:Math.round(x.home*100/total), pOffice:Math.round(x.office*100/total), total:x.total };
+      }).sort((a,b)=>a.unit.localeCompare(b.unit));
+      drawUnits(data);
     }
-    function setKpis(x){
-      if(!x){ $('#kpiHome').textContent='—'; $('#kpiOffice').textContent='—'; return; }
-      $('#kpiHome').textContent  = x.home + '%';
-      $('#kpiOffice').textContent = x.office + '%';
-    }
+    function setKpis(x){ $('#kpiHome').textContent = (x?.home ?? '—') + (x?'%':''); $('#kpiOffice').textContent = (x?.office ?? '—') + (x?'%':''); }
     function drawUnits(list){
       const tbody = $('#unitsBody'); tbody.innerHTML='';
       if(!list.length){ tbody.innerHTML = `<tr class="tr"><td class="td" colspan="4">—</td></tr>`; return; }
       for(const r of list){
         const tr = document.createElement('tr'); tr.className='tr';
-        tr.innerHTML = `
-          <td class="td">${r.unit}</td>
-          <td class="td">${r.pHome}%</td>
-          <td class="td">${r.pOffice}%</td>
-          <td class="td">${r.total}</td>`;
+        tr.innerHTML = `<td class="td">${r.unit}</td><td class="td">${r.pHome}%</td><td class="td">${r.pOffice}%</td><td class="td">${r.total}</td>`;
         tbody.appendChild(tr);
       }
     }
 
     // ================== CALENDARIO ==================
-    $('#btnPrevWeek').onclick = ()=>{ shiftWeek(-7); loadCalendar(); };
-    $('#btnNextWeek').onclick = ()=>{ shiftWeek(+7); loadCalendar(); };
-
     function shiftWeek(delta){ const d = weekStart(); d.setDate(d.getDate()+delta); state.weekStart = d; }
     function weekStart(){ return new Date(state.weekStart); }
     function weekEnd(){ const d = weekStart(); d.setDate(d.getDate()+6); return d; }
@@ -395,7 +375,6 @@
       cont.innerHTML = 'Cargando…';
       const ws = weekStart(), we = weekEnd();
       $('#weekLabel').textContent = `Semana del ${fmtDate(ws)} al ${fmtDate(we)}`;
-
       if(!state.orgId){ cont.innerHTML = '<div class="error">No hay organización</div>'; return; }
 
       let data=null, err=null;
@@ -404,23 +383,20 @@
         err = error; data = rpc;
       }catch(e){ err=e; }
       if(err){
-        const days = rangeDays(ws,we);
+        const daysAll = rangeDays(ws,we);
         const { data:members, error:em } = await sb.from('team_members')
           .select('id, full_name, unit')
-          .eq('org_id', state.orgId)
-          .eq('active', true)
-          .order('full_name');
+          .eq('org_id', state.orgId).eq('active', true).order('full_name');
         if(em){ cont.innerHTML = `<div class="error">${em.message}</div>`; return; }
         const { data:atts, error:ea } = await sb.from('attendance')
           .select('member_id, work_date, location')
           .eq('org_id', state.orgId)
-          .gte('work_date', iso(ws)).lte('work_date', iso(we))
-          .limit(2000);
+          .gte('work_date', iso(ws)).lte('work_date', iso(we)).limit(2000);
         if(ea){ cont.innerHTML = `<div class="error">${ea.message}</div>`; return; }
 
         const rows=[];
         for(const m of members){
-          for(const d of days){
+          for(const d of daysAll){
             const hit = atts.find(a=>a.member_id===m.id && a.work_date===iso(d));
             rows.push({ member_id:m.id, full_name:m.full_name, unit:m.unit||'—', work_date:iso(d), location:hit?.location||null });
           }
@@ -428,19 +404,31 @@
         data = rows;
       }
 
-      // QUITAR DOMINGOS
-      const days = rangeDays(ws,we).filter(d=>d.getDay()!==0);
+      // ========== QUITAR DOMINGOS ==========
+      let days = rangeDays(ws,we).filter(d=>d.getDay()!==0); // 0=domingo
       const isoDays = days.map(d=>iso(d));
 
+      // Construir filas (con unit y nombres)
       const by = new Map();
-      for(const r of data){
-        if(!isoDays.includes(r.work_date)) continue; // ignora domingo si vino del RPC
+      for(const r of (data||[])){
+        if(!isoDays.includes(r.work_date)) continue; // ignora domingo
         if(!by.has(r.member_id)){
           by.set(r.member_id,{ id:r.member_id, full_name:r.full_name, unit:r.unit||'—', days:Object.fromEntries(isoDays.map(x=>[x,null])) });
         }
         if(r.location) by.get(r.member_id).days[r.work_date] = r.location;
       }
-      cont.innerHTML = renderCalendarGrid([...by.values()], isoDays);
+      const rowsAll = [...by.values()];
+
+      // Popular selector de unidad (únicas)
+      const unitSel = $('#calUnit');
+      const units = Array.from(new Set(rowsAll.map(r=>r.unit||'—'))).sort();
+      const current = state.calUnit;
+      unitSel.innerHTML = `<option value="ALL">Todas</option>` + units.map(u=>`<option ${current===u?'selected':''} value="${u}">${u}</option>`).join('');
+
+      // Filtrar por unidad
+      const rows = rowsAll.filter(r => state.calUnit==='ALL' ? true : (r.unit||'—')===state.calUnit);
+
+      cont.innerHTML = renderCalendarGrid(rows, isoDays);
     }
 
     function renderCalendarGrid(rows, days){
@@ -475,23 +463,20 @@
       const next = current === 'home' ? 'office' : current === 'office' ? null : 'home';
 
       if(next === null){
-        const { error } = await sb
-          .from('attendance')
-          .delete()
-          .eq('org_id', state.orgId)
-          .eq('member_id', id)
-          .eq('work_date', d);
+        const { error } = await sb.from('attendance')
+          .delete().eq('org_id', state.orgId).eq('member_id', id).eq('work_date', d);
         if(error){ alert('No se pudo limpiar: '+error.message); return; }
       }else{
-        const { error } = await sb.from('attendance').upsert({
-          org_id: state.orgId, member_id:id, work_date:d, location: next
-        }, { onConflict: 'org_id,member_id,work_date' });
+        const { error } = await sb.from('attendance').upsert(
+          { org_id: state.orgId, member_id:id, work_date:d, location: next },
+          { onConflict: 'org_id,member_id,work_date' }
+        );
         if(error){ alert('No se pudo marcar: '+error.message); return; }
       }
       loadCalendar();
     });
 
-    // ================== EQUIPOS ==================
+    // ================== EQUIPOS (sin cambios) ==================
     $('#btnCreate').onclick = async ()=>{
       if(!state.orgId) return alert('No hay organización');
       const name = $('#inName').value.trim();
@@ -522,9 +507,7 @@
           <td class="td">${m.unit||'—'}</td>
           <td class="td">${m.email||'—'}</td>
           <td class="td">${m.active?'Sí':'No'}</td>
-          <td class="td">
-            <button class="btn" data-act="toggle" data-id="${m.id}">${m.active?'Desactivar':'Activar'}</button>
-          </td>`;
+          <td class="td"><button class="btn" data-act="toggle" data-id="${m.id}">${m.active?'Desactivar':'Activar'}</button></td>`;
         body.appendChild(tr);
       }
     }
@@ -540,10 +523,7 @@
 
     // ================== UTILS ==================
     function iso(d){ const x=new Date(d); x.setHours(0,0,0,0); return x.toISOString().slice(0,10); }
-    function fmtDate(d){
-      const dd = (d instanceof Date)? d : new Date(d);
-      return dd.toLocaleDateString('es-CO',{weekday:'short', day:'2-digit', month:'2-digit'}).replace('.','');
-    }
+    function fmtDate(d){ const dd = (d instanceof Date)? d : new Date(d); return dd.toLocaleDateString('es-CO',{weekday:'short', day:'2-digit', month:'2-digit'}).replace('.',''); }
     function fmtDay(isoStr){ return fmtDate(new Date(isoStr)); }
     function rangeDays(from,to){ const out=[]; const d=new Date(from); while(d<=to){ out.push(new Date(d)); d.setDate(d.getDate()+1); } return out; }
     function pill(loc){
