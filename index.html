@@ -8,17 +8,18 @@
   <style>
     :root{
       --bg:#0b0f17; --panel:#0f172a; --muted:#111827; --line:#1f2937; --text:#e5e7eb;
+      --brand:#7dd3fc; --ok:#86efac; --warn:#fbbf24; --bad:#f87171;
+      --badge:#1e293b; --home-bg:#1e293b; --home-fg:#93c5fd; --office-bg:#0f2f24; --office-fg:#86efac;
       --pill:#0b1220; --pill-b:#1f2435;
-      --home-bg:#1e293b; --home-fg:#93c5fd;
-      --office-bg:#0f2f24; --office-fg:#86efac;
     }
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    a{color:#93c5fd;text-decoration:none} a:hover{text-decoration:underline}
     .wrap{max-width:1100px;margin:36px auto;padding:0 16px}
 
     /* NAV */
-    .top{display:flex;align-items:center;gap:10px;margin-bottom:16px}
-    .logo{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;color:var(--text)} /* mismo tamaño que “Sesión” */
+    .top{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+    .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;color:var(--text);opacity:.9}
     .tabs{display:flex;gap:8px;margin-left:16px}
     .tab{background:var(--panel);border:1px solid var(--line);padding:10px 14px;border-radius:10px;cursor:pointer;color:var(--text)}
     .tab.active{outline:2px solid #3b82f6}
@@ -48,8 +49,8 @@
     .pill.muted{opacity:.7}
 
     /* Calendar */
-    .calendar{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px;--cols:7}
-    .cal-head,.cal-row{display:grid;grid-template-columns:260px repeat(var(--cols,7),1fr);gap:8px;align-items:center}
+    .calendar{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px}
+    .cal-head,.cal-row{display:grid;grid-template-columns:260px repeat(7,1fr);gap:8px;align-items:center}
     .cell{background:var(--muted);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;color:var(--text)}
     .cell.head{background:#0c1526;font-weight:700}
     .cell.member{text-align:left}
@@ -58,30 +59,32 @@
     .member-unit{opacity:.85;font-size:.9rem;color:var(--text)}
 
     .footer{margin-top:26px;text-align:center;opacity:.6;color:var(--text)}
-    .error{color:#f87171}
+    .error{color:var(--bad)}
 
     /* Login panel */
     .auth{max-width:480px;margin:80px auto;padding:16px}
     .row{display:flex;gap:8px;flex-wrap:wrap}
     input,select{background:#0f172a;border:1px solid var(--line);border-radius:10px;padding:10px;color:var(--text)}
     input::placeholder{color:#94a3b8}
+    .hint{font-size:.9rem;opacity:.85;color:var(--text)}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <!-- HEADER -->
+
+    <!-- ============== HEADER ============== -->
     <div class="top">
       <div class="logo">Flexibility by Systemgroup</div>
       <div class="tabs">
-        <button class="tab" id="tabDash">Dashboard</button>
-        <button class="tab active" id="tabCal">Calendario</button>
+        <button class="tab active" id="tabDash">Dashboard</button>
+        <button class="tab" id="tabCal">Calendario</button>
         <button class="tab" id="tabTeam">Equipos</button>
       </div>
       <div class="session" id="sessionInfo">Sesión: —</div>
       <button class="btn" id="btnLogout">Salir</button>
     </div>
 
-    <!-- LOGIN -->
+    <!-- ============== LOGIN (email/contraseña) ============== -->
     <section id="viewAuth" style="display:none">
       <div class="card auth">
         <h3 class="title">Inicia sesión</h3>
@@ -92,23 +95,26 @@
         <div class="row" style="margin-top:8px">
           <button class="btn primary" id="btnDoLogin">Entrar</button>
           <button class="btn" id="btnDoSignup">Crear cuenta</button>
-          <button class="btn" id="btnForgot">¿Olvidaste tu contraseña?</button>
+          <button class="btn" id="btnReset">¿Olvidaste tu contraseña?</button>
+        </div>
+        <div class="hint" style="margin-top:10px">
+          Sugerencia: si no quieres confirmar por correo, desactiva <em>“Confirm email”</em> en Supabase &rarr; Auth &rarr; Providers &rarr; Email.
         </div>
         <div id="authError" class="error" style="margin-top:10px;display:none"></div>
       </div>
     </section>
 
-    <!-- DASHBOARD (SIN CAMBIOS DE LÓGICA) -->
-    <section id="viewDashboard" class="grid" style="display:none">
-      <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
-        <div class="row" style="gap:8px;align-items:center">
-          <button class="btn" id="btnDashPrevWeek">← Semana anterior</button>
-          <div class="muted" id="weekRange">Semana</div>
-          <button class="btn" id="btnDashNextWeek">Semana siguiente →</button>
+    <!-- ============== DASHBOARD ============== -->
+    <section id="viewDashboard" class="grid">
+      <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div class="row" style="gap:8px">
+          <button class="btn" id="btnPrevWeekDash">← Semana anterior</button>
+          <button class="btn" id="btnNextWeekDash">Semana siguiente →</button>
         </div>
+        <div class="muted" id="weekRange">Semana</div>
         <div class="row" style="gap:8px;align-items:center">
-          <label class="muted" for="monthPicker">Mes:</label>
-          <input id="monthPicker" type="month" style="background:#0f172a;border:1px solid var(--line);border-radius:10px;padding:8px;color:var(--text)">
+          <span class="muted">Mes:</span>
+          <input id="monthPicker" type="month" />
         </div>
       </div>
 
@@ -142,24 +148,24 @@
       </div>
     </section>
 
-    <!-- CALENDARIO -->
-    <section id="viewCalendar">
-      <div class="card" style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+    <!-- ============== CALENDARIO ============== -->
+    <section id="viewCalendar" style="display:none">
+      <div class="card" style="display:flex;gap:8px;align-items:center;justify-content:space-between">
         <div>
           <button class="btn" id="btnPrevWeek">← Semana anterior</button>
           <button class="btn" id="btnNextWeek">Semana siguiente →</button>
         </div>
         <div class="muted" id="weekLabel">Semana</div>
         <div class="row" style="gap:8px;align-items:center">
-          <label class="muted" for="calUnit">Unidad:</label>
-          <select id="calUnit"><option value="ALL">Todas</option></select>
+          <span class="muted">Unidad:</span>
+          <select id="unitFilter"></select>
         </div>
       </div>
       <div id="calendarContainer" class="calendar" style="margin-top:12px"></div>
       <div class="footer">© Flexibility by Systemgroup</div>
     </section>
 
-    <!-- EQUIPOS (SIN CAMBIOS) -->
+    <!-- ============== EQUIPOS ============== -->
     <section id="viewTeams" style="display:none" class="grid">
       <div class="card">
         <h3 class="title">Crear miembro</h3>
@@ -195,7 +201,7 @@
   </div>
 
   <script>
-    // ================== SUPABASE ==================
+    // ================== CONFIG SUPABASE ==================
     const SUPABASE_URL  = "https://tkrlcuqbujzwqhweblto.supabase.co";
     const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRrcmxjdXFidWp6d3Fod2VibHRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5MTUzODIsImV4cCI6MjA3MDQ5MTM4Mn0.PjwSfBreunYD1RyiOUeCzJKIug7Wc7YSaqZFzMJXCxg";
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
@@ -204,24 +210,28 @@
     const state = {
       user: null,
       orgId: null,
-      weekStart: null,   // lunes
-      monthRef: null,    // primer día del mes elegido (dashboard)
-      calUnit: 'ALL'     // filtro de unidad en calendario
+      weekStart: null, // Monday
+      monthCursor: null, // YYYY-MM first day
     };
 
-    const $ = sel => document.querySelector(sel);
+    // ====== SENTINELA PARA "VACÍO" (solución NOT NULL) ======
+    const LOC = { HOME: 'home', OFFICE: 'office', NONE: 'none' };
+
+    // Helpers DOM
+    const $ = (sel)=>document.querySelector(sel);
     const show = id => {
       ['viewAuth','viewDashboard','viewCalendar','viewTeams'].forEach(v=>{
         const el = $('#'+v);
-        if(el) el.style.display = (v===id?'':'none');
+        if(!el) return;
+        el.style.display = (v===id?'':'none');
       });
-      ['tabDash','tabCal','tabTeam'].forEach(t=>$('#'+t)?.classList.remove('active'));
+      ['tabDash','tabCal','tabTeam'].forEach(t=>$('#'+t).classList.remove('active'));
       if(id==='viewDashboard') $('#tabDash').classList.add('active');
       if(id==='viewCalendar')  $('#tabCal').classList.add('active');
       if(id==='viewTeams')     $('#tabTeam').classList.add('active');
     };
 
-    // ================== AUTH ==================
+    // ================== AUTH (email/contraseña) ==================
     $('#btnDoLogin').onclick = async ()=>{
       const email = $('#authEmail').value.trim();
       const pass  = $('#authPass').value;
@@ -241,18 +251,21 @@
       alert('Cuenta creada. Si tu proyecto requiere confirmación, revisa tu correo.');
       await bootstrap();
     };
-    $('#btnForgot').onclick = async ()=>{
-      const email = $('#authEmail').value.trim();
-      if(!email) return setAuthError('Escribe tu correo para enviarte el enlace de recuperación.');
-      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
-      if(error) setAuthError('No se pudo enviar el correo de recuperación: '+error.message);
-      else alert('Revisa tu correo para recuperar tu contraseña.');
+    $('#btnReset').onclick = async ()=>{
+      const email = prompt('Escribe tu correo para resetear contraseña:');
+      if(!email) return;
+      const { error } = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin
+      });
+      if(error) alert('No se pudo enviar el correo: '+error.message);
+      else alert('Te enviamos un correo con instrucciones.');
     };
     function setAuthError(msg){
       const box = $('#authError');
       if(!msg){ box.style.display='none'; box.textContent=''; }
       else { box.textContent = msg; box.style.display='block'; }
     }
+
     $('#btnLogout').onclick = async()=>{
       await sb.auth.signOut();
       state.user = null;
@@ -273,110 +286,125 @@
       state.user = user;
       $('#sessionInfo').textContent = 'Sesión: ' + (user.email || user.id);
 
-      // org del perfil
       const { data:prof } = await sb.from('profiles').select('org_id').eq('id', user.id).maybeSingle();
       state.orgId = prof?.org_id || null;
 
-      // Semana actual (lunes)
       const today = new Date();
       const monday = new Date(today);
       monday.setDate(today.getDate() - ((today.getDay()+6)%7));
       state.weekStart = monday;
+      state.monthCursor = new Date(today.getFullYear(), today.getMonth(), 1);
 
-      // Dashboard: mes por defecto
-      state.monthRef = new Date(today.getFullYear(), today.getMonth(), 1);
-      const m = state.monthRef;
-      const mm = String(m.getMonth()+1).padStart(2,'0');
-      $('#monthPicker').value = `${m.getFullYear()}-${mm}`;
-      $('#monthPicker').addEventListener('change', ()=>{
-        const [yy,mm] = $('#monthPicker').value.split('-').map(Number);
-        state.monthRef = new Date(yy, mm-1, 1);
+      // month input
+      const mp = $('#monthPicker');
+      mp.value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
+      mp.addEventListener('change', ()=>{
+        const [y,m] = mp.value.split('-').map(Number);
+        state.monthCursor = new Date(y, m-1, 1);
         loadDashboard();
       });
 
-      // Controles de semana
-      $('#btnDashPrevWeek')?.addEventListener('click', ()=>{ shiftWeek(-7); loadDashboard(); });
-      $('#btnDashNextWeek')?.addEventListener('click', ()=>{ shiftWeek(+7); loadDashboard(); });
-      $('#btnPrevWeek').addEventListener('click', ()=>{ shiftWeek(-7); loadCalendar(); });
-      $('#btnNextWeek').addEventListener('click', ()=>{ shiftWeek(+7); loadCalendar(); });
-
-      // Filtro unidad calendario
-      $('#calUnit').addEventListener('change', (e)=>{ state.calUnit = e.target.value; loadCalendar(); });
+      // Week controls (dashboard)
+      $('#btnPrevWeekDash').onclick = ()=>{ shiftWeek(-7); loadDashboard(); };
+      $('#btnNextWeekDash').onclick = ()=>{ shiftWeek(+7); loadDashboard(); };
 
       show('viewDashboard');
       await loadDashboard();
     }
 
-    // ================== DASHBOARD (igual que antes) ==================
+    // ================== DASHBOARD ==================
     async function loadDashboard(){
       const ws = weekStart(), we = weekEnd();
       $('#weekRange').textContent = `Semana del ${fmtDate(ws)} al ${fmtDate(we)}`;
 
-      const m0 = new Date(state.monthRef.getTime());
-      $('#monthLabel').textContent = m0.toLocaleDateString('es-CO', { month:'long', year:'numeric' });
+      // etiqueta mes
+      const ym = state.monthCursor || new Date(ws.getFullYear(), ws.getMonth(), 1);
+      $('#monthLabel').textContent = ym.toLocaleDateString('es-CO',{month:'long', year:'numeric'});
 
       if(!state.orgId){ setKpis(null); drawUnits([]); return; }
 
-      const { data:attW } = await sb
-        .from('attendance').select('location')
-        .gte('work_date', iso(ws)).lte('work_date', iso(we))
-        .eq('org_id', state.orgId).limit(2000);
-      const total = attW?.length || 0;
-      if(!total){ setKpis({home:0,office:0}); }
+      // KPIs semana por org (ignorando 'none')
+      const { data:attW, error:e1 } = await sb
+        .from('attendance')
+        .select('location')
+        .gte('work_date', iso(ws))
+        .lte('work_date', iso(we))
+        .eq('org_id', state.orgId)
+        .limit(2000);
+      if(e1){ console.error(e1); setKpis(null); }
       else{
-        const home = attW.filter(r=>r.location==='home').length;
-        const office= attW.filter(r=>r.location==='office').length;
-        setKpis({ home: Math.round(home*100/total), office: Math.round(office*100/total) });
+        const base = (attW||[]).filter(r=>r.location===LOC.HOME || r.location===LOC.OFFICE);
+        const total = base.length;
+        const home  = base.filter(r=>r.location===LOC.HOME).length;
+        const office= base.filter(r=>r.location===LOC.OFFICE).length;
+        setKpis({ home: total? Math.round(home*100/total):0,
+                  office: total? Math.round(office*100/total):0 });
       }
 
-      const monthFrom = iso(new Date(m0.getFullYear(), m0.getMonth(), 1));
-      const monthTo   = iso(new Date(m0.getFullYear(), m0.getMonth()+1, 0));
-      const { data:rows } = await sb
-        .from('attendance').select('location, team_members(unit)')
-        .eq('org_id', state.orgId).gte('work_date', monthFrom).lte('work_date', monthTo).limit(5000);
-
-      const byUnit = {};
-      (rows||[]).forEach(r=>{
-        const u = r.team_members?.unit || '—';
-        if(!byUnit[u]) byUnit[u] = { unit:u, home:0, office:0, total:0 };
-        if(r.location==='home') byUnit[u].home++;
-        else if(r.location==='office') byUnit[u].office++;
-        byUnit[u].total++;
-      });
-      const data = Object.values(byUnit).map(x=>{
-        const total = x.total || 1;
-        return { unit:x.unit, pHome:Math.round(x.home*100/total), pOffice:Math.round(x.office*100/total), total:x.total };
-      }).sort((a,b)=>a.unit.localeCompare(b.unit));
-      drawUnits(data);
+      // Resumen por unidad del mes (ignorando 'none')
+      const monthFrom = iso(new Date(ym.getFullYear(), ym.getMonth(), 1));
+      const monthTo   = iso(new Date(ym.getFullYear(), ym.getMonth()+1, 0));
+      const { data:rows, error:e2 } = await sb
+        .from('attendance')
+        .select('location, team_members(unit)')
+        .eq('org_id', state.orgId)
+        .gte('work_date', monthFrom)
+        .lte('work_date', monthTo)
+        .limit(5000);
+      if(e2){ console.error(e2); drawUnits([]); }
+      else{
+        const byUnit = {};
+        for(const r of rows){
+          const u = r.team_members?.unit || '—';
+          if(!byUnit[u]) byUnit[u] = { unit:u, home:0, office:0, total:0 };
+          if(r.location===LOC.HOME)   byUnit[u].home++;
+          else if(r.location===LOC.OFFICE) byUnit[u].office++;
+          if(r.location===LOC.HOME || r.location===LOC.OFFICE) byUnit[u].total++;
+        }
+        const data = Object.values(byUnit).map(x=>{
+          const total = x.total || 1;
+          return { unit:x.unit, pHome:Math.round(x.home*100/total), pOffice:Math.round(x.office*100/total), total:x.total };
+        }).sort((a,b)=>a.unit.localeCompare(b.unit));
+        drawUnits(data);
+      }
     }
-    function setKpis(x){ $('#kpiHome').textContent = (x?.home ?? '—') + (x?'%':''); $('#kpiOffice').textContent = (x?.office ?? '—') + (x?'%':''); }
+    function setKpis(x){
+      if(!x){ $('#kpiHome').textContent='—'; $('#kpiOffice').textContent='—'; return; }
+      $('#kpiHome').textContent = x.home + '%';
+      $('#kpiOffice').textContent = x.office + '%';
+    }
     function drawUnits(list){
       const tbody = $('#unitsBody'); tbody.innerHTML='';
       if(!list.length){ tbody.innerHTML = `<tr class="tr"><td class="td" colspan="4">—</td></tr>`; return; }
       for(const r of list){
         const tr = document.createElement('tr'); tr.className='tr';
-        tr.innerHTML = `<td class="td">${r.unit}</td><td class="td">${r.pHome}%</td><td class="td">${r.pOffice}%</td><td class="td">${r.total}</td>`;
+        tr.innerHTML = `
+          <td class="td">${r.unit}</td>
+          <td class="td">${r.pHome}%</td>
+          <td class="td">${r.pOffice}%</td>
+          <td class="td">${r.total}</td>`;
         tbody.appendChild(tr);
       }
     }
 
     // ================== CALENDARIO ==================
+    $('#btnPrevWeek').onclick = ()=>{ shiftWeek(-7); loadCalendar(); };
+    $('#btnNextWeek').onclick = ()=>{ shiftWeek(+7); loadCalendar(); };
+
     function shiftWeek(delta){ const d = weekStart(); d.setDate(d.getDate()+delta); state.weekStart = d; }
     function weekStart(){ return new Date(state.weekStart); }
     function weekEnd(){ const d = weekStart(); d.setDate(d.getDate()+6); return d; }
-
-    // Parser local seguro (evita TZ) para yyyy-mm-dd
-    function parseISOToLocal(isoStr){
-      const [y,m,d] = isoStr.split('-').map(Number);
-      return new Date(y, m-1, d); // local
-    }
 
     async function loadCalendar(){
       const cont = $('#calendarContainer');
       cont.innerHTML = 'Cargando…';
       const ws = weekStart(), we = weekEnd();
       $('#weekLabel').textContent = `Semana del ${fmtDate(ws)} al ${fmtDate(we)}`;
+
       if(!state.orgId){ cont.innerHTML = '<div class="error">No hay organización</div>'; return; }
+
+      // Cargar unidades para filtro
+      await populateUnitFilter();
 
       let data=null, err=null;
       try{
@@ -384,52 +412,58 @@
         err = error; data = rpc;
       }catch(e){ err=e; }
       if(err){
+        const days = rangeDays(ws,we).map(d=>iso(d));
         const { data:members, error:em } = await sb.from('team_members')
-          .select('id, full_name, unit').eq('org_id', state.orgId).eq('active', true).order('full_name');
+          .select('id, full_name, unit')
+          .eq('org_id', state.orgId)
+          .eq('active', true)
+          .order('full_name');
         if(em){ cont.innerHTML = `<div class="error">${em.message}</div>`; return; }
         const { data:atts, error:ea } = await sb.from('attendance')
-          .select('member_id, work_date, location').eq('org_id', state.orgId)
-          .gte('work_date', iso(ws)).lte('work_date', iso(we)).limit(2000);
+          .select('member_id, work_date, location')
+          .eq('org_id', state.orgId)
+          .gte('work_date', iso(ws)).lte('work_date', iso(we))
+          .limit(2000);
         if(ea){ cont.innerHTML = `<div class="error">${ea.message}</div>`; return; }
 
         const rows=[];
-        const isosAll = rangeDays(ws,we).map(d=>iso(d));
-        for(const m of (members||[])){
-          for(const s of isosAll){
-            const hit = (atts||[]).find(a=>a.member_id===m.id && a.work_date===s);
-            rows.push({ member_id:m.id, full_name:m.full_name, unit:m.unit||'—', work_date:s, location:hit?.location||null });
+        for(const m of members){
+          for(const s of days){
+            const hit = atts.find(a=>a.member_id===m.id && a.work_date===s);
+            const val = hit?.location === LOC.NONE ? null : hit?.location ?? null;
+            rows.push({ member_id:m.id, full_name:m.full_name, unit:m.unit||'—', work_date:s, location: val });
           }
         }
         data = rows;
       }
 
-      // ==== QUITAR DOMINGOS (usando parser local) ====
-      const allIso = rangeDays(ws,we).map(d=>iso(d));
-      const isoDays = allIso.filter(s => parseISOToLocal(s).getDay() !== 0); // 0 = Domingo
-      // Set columnas dinámicas
-      cont.style.setProperty('--cols', String(isoDays.length));
-
-      // Construir mapa por miembro
+      const days = rangeDays(ws,we).map(d=>iso(d));
       const by = new Map();
-      for(const r of (data||[])){
-        if(!isoDays.includes(r.work_date)) continue; // ignora domingos
+      for(const r of data){
         if(!by.has(r.member_id)){
-          by.set(r.member_id,{ id:r.member_id, full_name:r.full_name, unit:r.unit||'—', days:Object.fromEntries(isoDays.map(x=>[x,null])) });
+          by.set(r.member_id,{ id:r.member_id, full_name:r.full_name, unit:r.unit||'—', days:Object.fromEntries(days.map(x=>[x,null])) });
         }
-        if(r.location!=null) by.get(r.member_id).days[r.work_date] = r.location;
+        if(r.location != null){
+          const v = (r.location === LOC.NONE) ? null : r.location;
+          by.get(r.member_id).days[r.work_date] = v;
+        }
       }
-      const rowsAll = [...by.values()];
 
-      // Popular selector de unidad
-      const unitSel = $('#calUnit');
-      const units = Array.from(new Set(rowsAll.map(r=>r.unit||'—'))).sort();
-      const current = state.calUnit;
-      unitSel.innerHTML = `<option value="ALL">Todas</option>` + units.map(u=>`<option ${current===u?'selected':''} value="${u}">${u}</option>`).join('');
+      // Filtro por unidad
+      const selectedUnit = $('#unitFilter').value || '';
+      const rows = [...by.values()].filter(r => !selectedUnit || r.unit===selectedUnit);
 
-      // Filtrar por unidad
-      const rows = rowsAll.filter(r => state.calUnit==='ALL' ? true : (r.unit||'—')===state.calUnit);
+      cont.innerHTML = renderCalendarGrid(rows, days);
+    }
 
-      cont.innerHTML = renderCalendarGrid(rows, isoDays);
+    async function populateUnitFilter(){
+      const sel = $('#unitFilter');
+      if(sel.options.length) return; // ya poblado
+      const { data } = await sb.from('team_members')
+        .select('unit').eq('org_id', state.orgId).not('unit','is',null);
+      const units = Array.from(new Set((data||[]).map(r=>r.unit))).sort();
+      sel.innerHTML = `<option value="">(todas)</option>` + units.map(u=>`<option>${u}</option>`).join('');
+      sel.onchange = ()=>loadCalendar();
     }
 
     function renderCalendarGrid(rows, days){
@@ -452,35 +486,30 @@
       return header + body;
     }
 
-    // Toggle 3 estados: home -> office -> null -> home
+    // Toggle 3 estados: home -> office -> none -> home
     document.addEventListener('click', async (e)=>{
       const btn = e.target.closest('.cell.day'); if(!btn) return;
       if(!state.orgId) return;
 
       const id = btn.dataset.memberId;
       const d  = btn.dataset.date;
-      const raw = btn.textContent.trim();
-      const current = raw === 'Casa' ? 'home' : raw === 'Oficina' ? 'office' : null;
-      const next = current === 'home' ? 'office' : current === 'office' ? null : 'home';
 
-      if(next === null){
-        // NO borramos: dejamos location = null (evita políticas RLS de DELETE)
-        const { error } = await sb
-          .from('attendance')
-          .upsert({ org_id: state.orgId, member_id:id, work_date:d, location: null },
-                  { onConflict: 'org_id,member_id,work_date' });
-        if(error){ alert('No se pudo limpiar: '+error.message); return; }
-      }else{
-        const { error } = await sb.from('attendance').upsert(
-          { org_id: state.orgId, member_id:id, work_date:d, location: next },
-          { onConflict: 'org_id,member_id,work_date' }
-        );
-        if(error){ alert('No se pudo marcar: '+error.message); return; }
-      }
+      const raw = btn.textContent.trim();
+      const current = raw === 'Casa' ? LOC.HOME : raw === 'Oficina' ? LOC.OFFICE : LOC.NONE;
+      const next = current === LOC.HOME ? LOC.OFFICE
+                : current === LOC.OFFICE ? LOC.NONE
+                : LOC.HOME;
+
+      const { error } = await sb.from('attendance').upsert(
+        { org_id: state.orgId, member_id:id, work_date:d, location: next },
+        { onConflict: 'org_id,member_id,work_date' }
+      );
+      if(error){ alert((next===LOC.NONE?'No se pudo limpiar: ':'No se pudo marcar: ') + error.message); return; }
+
       loadCalendar();
     });
 
-    // ================== EQUIPOS (sin cambios) ==================
+    // ================== EQUIPOS ==================
     $('#btnCreate').onclick = async ()=>{
       if(!state.orgId) return alert('No hay organización');
       const name = $('#inName').value.trim();
@@ -511,7 +540,9 @@
           <td class="td">${m.unit||'—'}</td>
           <td class="td">${m.email||'—'}</td>
           <td class="td">${m.active?'Sí':'No'}</td>
-          <td class="td"><button class="btn" data-act="toggle" data-id="${m.id}">${m.active?'Desactivar':'Activar'}</button></td>`;
+          <td class="td">
+            <button class="btn" data-act="toggle" data-id="${m.id}">${m.active?'Desactivar':'Activar'}</button>
+          </td>`;
         body.appendChild(tr);
       }
     }
@@ -527,15 +558,15 @@
 
     // ================== UTILS ==================
     function iso(d){ const x=new Date(d); x.setHours(0,0,0,0); return x.toISOString().slice(0,10); }
-    function fmtDate(d){ const dd = (d instanceof Date)? d : new Date(d); return dd.toLocaleDateString('es-CO',{weekday:'short', day:'2-digit', month:'2-digit'}).replace('.',''); }
-    function fmtDay(isoStr){ // usa parser local para evitar TZ
-      const dd = parseISOToLocal(isoStr);
+    function fmtDate(d){
+      const dd = (d instanceof Date)? d : new Date(d);
       return dd.toLocaleDateString('es-CO',{weekday:'short', day:'2-digit', month:'2-digit'}).replace('.','');
     }
+    function fmtDay(isoStr){ return fmtDate(new Date(isoStr)); }
     function rangeDays(from,to){ const out=[]; const d=new Date(from); while(d<=to){ out.push(new Date(d)); d.setDate(d.getDate()+1); } return out; }
     function pill(loc){
-      if(loc==='home')   return `<span class="pill home">Casa</span>`;
-      if(loc==='office') return `<span class="pill office">Oficina</span>`;
+      if(loc === LOC.HOME)   return `<span class="pill home">Casa</span>`;
+      if(loc === LOC.OFFICE) return `<span class="pill office">Oficina</span>`;
       return `<span class="pill muted">—</span>`;
     }
   </script>
