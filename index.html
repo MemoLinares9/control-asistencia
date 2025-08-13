@@ -67,7 +67,15 @@
     .row{display:flex;gap:8px;flex-wrap:wrap}
     input,select{background:#0f172a;border:1px solid var(--line);border-radius:10px;padding:10px;color:var(--text)}
     input::placeholder{color:#94a3b8}
-    .hint{font-size:.9rem;opacity:.85;color:var(--text)}
+
+    /* Toast / bienvenida */
+    .toast{
+      position:fixed;top:16px;left:50%;transform:translateX(-50%);
+      background:#0f172a;border:1px solid #334155;color:#e5e7eb;
+      padding:10px 14px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.3);
+      opacity:1;transition:opacity 1.2s ease;z-index:9999
+    }
+    .toast.fade{opacity:0}
   </style>
 </head>
 <body>
@@ -97,8 +105,8 @@
           <button class="btn primary" id="btnDoLogin">Entrar</button>
           <button class="btn" id="btnDoSignup">Crear cuenta</button>
         </div>
-        <div class="hint" style="margin-top:10px">
-          Sugerencia: si no quieres confirmar por correo, desactiva <em>“Confirm email”</em> en Supabase &rarr; Auth &rarr; Providers &rarr; Email.
+        <div class="muted" style="margin-top:10px">
+          * Si no quieres confirmar por correo, desactiva “Confirm email” en Supabase → Auth → Providers → Email.
         </div>
         <div id="authError" class="error" style="margin-top:10px;display:none"></div>
       </div>
@@ -154,7 +162,7 @@
       <div class="footer">© Tu app de asistencia</div>
     </section>
 
-    <!-- ============== EQUIPOS ============== -->
+    <!-- ============== EQUIPOS (solo crear/administrar) ============== -->
     <section id="viewTeams" style="display:none" class="grid">
       <div class="card">
         <h3 class="title">Crear miembro</h3>
@@ -190,34 +198,43 @@
   </div>
 
   <script>
-    // ================== CONFIG SUPABASE ==================
+    /* ================== SUPABASE CONFIG ================== */
     const SUPABASE_URL  = "https://tkrlcuqbujzwqhweblto.supabase.co";
     const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRrcmxjdXFidWp6d3Fod2VibHRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5MTUzODIsImV4cCI6MjA3MDQ5MTM4Mn0.PjwSfBreunYD1RyiOUeCzJKIug7Wc7YSaqZFzMJXCxg";
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-    // ================== STATE ==================
-    const state = {
-      user: null,
-      orgId: null,
-      weekStart: null, // Monday
-    };
+    /* ================== STATE ================== */
+    const state = { user:null, orgId:null, weekStart:null };
 
-    // Helpers DOM
-    const $ = (sel)=>document.querySelector(sel);
+    /* ================== UTIL DOM ================== */
+    const $ = sel => document.querySelector(sel);
     const show = id => {
       ['viewAuth','viewDashboard','viewCalendar','viewTeams'].forEach(v=>{
-        const el = $('#'+v);
-        if(!el) return;
-        el.style.display = (v===id?'':'none');
+        const el = $('#'+v); if(!el) return;
+        el.style.display = (v===id ? '' : 'none');
       });
-      // marcar pestañas (solo cuando estamos logueados)
       ['tabDash','tabCal','tabTeam'].forEach(t=>$('#'+t).classList.remove('active'));
       if(id==='viewDashboard') $('#tabDash').classList.add('active');
       if(id==='viewCalendar')  $('#tabCal').classList.add('active');
       if(id==='viewTeams')     $('#tabTeam').classList.add('active');
     };
 
-    // ================== AUTH (email/contraseña) ==================
+    /* ================== TOAST / MENSAJES ================== */
+    function toast(text, ms=3000){
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.textContent = text;
+      document.body.appendChild(t);
+      setTimeout(()=> t.classList.add('fade'), ms-1200);
+      setTimeout(()=> t.remove(), ms);
+    }
+
+    // Bienvenida con fade-out
+    document.addEventListener('DOMContentLoaded', ()=> {
+      toast('Bienvenido al sistema de control de asistencia', 3200);
+    });
+
+    /* ================== AUTH (usuario/contraseña) ================== */
     $('#btnDoLogin').onclick = async ()=>{
       const email = $('#authEmail').value.trim();
       const pass  = $('#authPass').value;
@@ -225,19 +242,21 @@
       if(!email || !pass) return setAuthError('Escribe correo y contraseña.');
       const { error } = await sb.auth.signInWithPassword({ email, password: pass });
       if(error){ setAuthError('No se pudo iniciar sesión: '+error.message); return; }
+      toast('Sesión iniciada');
       await bootstrap();
     };
+
     $('#btnDoSignup').onclick = async ()=>{
       const email = $('#authEmail').value.trim();
       const pass  = $('#authPass').value;
       setAuthError('');
       if(!email || !pass) return setAuthError('Escribe correo y contraseña.');
+      if(pass.length<6) return setAuthError('La contraseña debe tener al menos 6 caracteres.');
       const { error } = await sb.auth.signUp({ email, password: pass });
       if(error){ setAuthError('No se pudo crear la cuenta: '+error.message); return; }
-      // Si Confirm email está OFF, el usuario ya queda activo. Si está ON, deberá confirmar por correo.
-      alert('Cuenta creada. Si tu proyecto requiere confirmación, revisa tu correo.');
-      await bootstrap();
+      toast('Cuenta creada'); await bootstrap();
     };
+
     function setAuthError(msg){
       const box = $('#authError');
       if(!msg){ box.style.display='none'; box.textContent=''; }
@@ -246,30 +265,28 @@
 
     $('#btnLogout').onclick = async()=>{
       await sb.auth.signOut();
-      state.user = null;
+      state.user = null; state.orgId=null;
       $('#sessionInfo').textContent = 'Sesión: —';
       show('viewAuth');
+      toast('Sesión cerrada');
     };
 
-    // ================== NAV ==================
+    /* ================== NAV TABS ================== */
     $('#tabDash').onclick = async ()=>{ show('viewDashboard'); await loadDashboard(); };
     $('#tabCal').onclick  = async ()=>{ show('viewCalendar');  await loadCalendar();  };
     $('#tabTeam').onclick = async ()=>{ show('viewTeams');     await loadMembers();   };
 
-    // ================== INIT ==================
+    /* ================== INIT ================== */
     bootstrap();
     async function bootstrap(){
-      // usuario actual
       const { data:{ user } } = await sb.auth.getUser();
-      if(!user){
-        show('viewAuth');
-        return;
-      }
+      if(!user){ show('viewAuth'); return; }
       state.user = user;
       $('#sessionInfo').textContent = 'Sesión: ' + (user.email || user.id);
 
       // org del perfil
-      const { data:prof } = await sb.from('profiles').select('org_id').eq('id', user.id).maybeSingle();
+      const { data:prof, error:pe } = await sb.from('profiles').select('org_id').eq('id', user.id).maybeSingle();
+      if(pe) console.error(pe);
       state.orgId = prof?.org_id || null;
       $('#orgBadge').textContent = state.orgId ? ('Org: '+state.orgId) : 'Org: —';
 
@@ -279,22 +296,19 @@
       monday.setDate(today.getDate() - ((today.getDay()+6)%7));
       state.weekStart = monday;
 
-      // vista inicial
       show('viewDashboard');
       await loadDashboard();
     }
 
-    // ================== DASHBOARD ==================
+    /* ================== DASHBOARD ================== */
     async function loadDashboard(){
-      // etiquetas de rango semanal y mes
       const ws = weekStart(), we = weekEnd();
       $('#weekRange').textContent = `Semana del ${fmtDate(ws)} al ${fmtDate(we)}`;
-      const ym = new Date(ws.getFullYear(), ws.getMonth(), 1);
-      $('#monthLabel').textContent = `${ym.getMonth()+1}/${ym.getFullYear()}`;
+      $('#monthLabel').textContent = `${ws.getMonth()+1}/${ws.getFullYear()}`;
 
       if(!state.orgId){ setKpis(null); drawUnits([]); return; }
 
-      // KPIs semana por org
+      // KPIs semana
       const { data:attW, error:e1 } = await sb
         .from('attendance')
         .select('location')
@@ -305,12 +319,12 @@
       if(e1){ console.error(e1); setKpis(null); }
       else{
         const total = attW.length || 1;
-        const home = attW.filter(r=>r.location==='home').length;
+        const home  = attW.filter(r=>r.location==='home').length;
         const office= attW.filter(r=>r.location==='office').length;
         setKpis({ home: Math.round(home*100/total), office: Math.round(office*100/total) });
       }
 
-      // Resumen por unidad del mes
+      // Resumen por unidad (mes)
       const monthFrom = iso(new Date(ws.getFullYear(), ws.getMonth(), 1));
       const monthTo   = iso(new Date(ws.getFullYear(), ws.getMonth()+1, 0));
       const { data:rows, error:e2 } = await sb
@@ -322,19 +336,20 @@
         .limit(5000);
       if(e2){ console.error(e2); drawUnits([]); }
       else{
-        const byUnit = {};
+        const agg = new Map();
         for(const r of rows){
-          const u = r.team_members?.unit || '—';
-          if(!byUnit[u]) byUnit[u] = { unit:u, home:0, office:0, total:0 };
-          if(r.location==='home') byUnit[u].home++;
-          else if(r.location==='office') byUnit[u].office++;
-          byUnit[u].total++;
+          const unit = r.team_members?.unit || '—';
+          if(!agg.has(unit)) agg.set(unit,{home:0,office:0,total:0});
+          const x = agg.get(unit);
+          if(r.location==='home') x.home++;
+          else if(r.location==='office') x.office++;
+          x.total++;
         }
-        const data = Object.values(byUnit).map(x=>{
-          const total = x.total || 1;
-          return { unit:x.unit, pHome:Math.round(x.home*100/total), pOffice:Math.round(x.office*100/total), total:x.total };
+        const list = [...agg.entries()].map(([unit,x])=>{
+          const t = x.total||1;
+          return { unit, pHome:Math.round(x.home*100/t), pOffice:Math.round(x.office*100/t), total:x.total };
         }).sort((a,b)=>a.unit.localeCompare(b.unit));
-        drawUnits(data);
+        drawUnits(list);
       }
     }
     function setKpis(x){
@@ -347,16 +362,15 @@
       if(!list.length){ tbody.innerHTML = `<tr class="tr"><td class="td" colspan="4">—</td></tr>`; return; }
       for(const r of list){
         const tr = document.createElement('tr'); tr.className='tr';
-        tr.innerHTML = `
-          <td class="td">${r.unit}</td>
-          <td class="td">${r.pHome}%</td>
-          <td class="td">${r.pOffice}%</td>
-          <td class="td">${r.total}</td>`;
+        tr.innerHTML = `<td class="td">${r.unit}</td>
+                        <td class="td">${r.pHome}%</td>
+                        <td class="td">${r.pOffice}%</td>
+                        <td class="td">${r.total}</td>`;
         tbody.appendChild(tr);
       }
     }
 
-    // ================== CALENDARIO ==================
+    /* ================== CALENDARIO ================== */
     $('#btnPrevWeek').onclick = ()=>{ shiftWeek(-7); loadCalendar(); };
     $('#btnNextWeek').onclick = ()=>{ shiftWeek(+7); loadCalendar(); };
 
@@ -372,19 +386,18 @@
 
       if(!state.orgId){ cont.innerHTML = '<div class="error">No hay organización</div>'; return; }
 
-      let data=null, err=null;
+      let data = null, err = null;
       try{
         const { data:rpc, error } = await sb.rpc('week_attendance', { p_org: state.orgId, p_from: iso(ws), p_to: iso(we) });
         err = error; data = rpc;
       }catch(e){ err=e; }
+
       if(err){
-        // Fallback local
+        // Fallback: construir grilla a partir de miembros + asistencia
         const days = rangeDays(ws,we);
         const { data:members, error:em } = await sb.from('team_members')
           .select('id, full_name, unit')
-          .eq('org_id', state.orgId)
-          .eq('active', true)
-          .order('full_name');
+          .eq('org_id', state.orgId).eq('active', true).order('full_name');
         if(em){ cont.innerHTML = `<div class="error">${em.message}</div>`; return; }
         const { data:atts, error:ea } = await sb.from('attendance')
           .select('member_id, work_date, location')
@@ -444,23 +457,24 @@
       const { error } = await sb.from('attendance').upsert({
         org_id: state.orgId, member_id:id, work_date:d, location: next
       }, { onConflict: 'org_id,member_id,work_date' });
-      if(error){ alert('No se pudo marcar: '+error.message); return; }
+      if(error){ toast('No se pudo marcar: '+error.message, 4200); return; }
       loadCalendar();
     });
 
-    // ================== EQUIPOS ==================
+    /* ================== EQUIPOS ================== */
     $('#btnCreate').onclick = async ()=>{
-      if(!state.orgId) return alert('No hay organización');
+      if(!state.orgId) return toast('No hay organización', 2600);
       const name = $('#inName').value.trim();
       const email= $('#inEmail').value.trim() || null;
       const unit = $('#inUnit').value.trim() || null;
-      if(!name) return alert('Nombre es requerido');
+      if(!name) return toast('Nombre es requerido', 2600);
       const { error } = await sb.from('team_members').insert({ org_id: state.orgId, full_name:name, email, unit, active:true });
-      if(error) return alert('Error creando miembro: '+error.message);
+      if(error) return toast('Error creando miembro: '+error.message, 4200);
       $('#inName').value=''; $('#inEmail').value=''; $('#inUnit').value='';
       await loadMembers();
-      alert('Miembro creado');
+      toast('Miembro creado');
     };
+
     $('#btnRefreshMembers').onclick = ()=>loadMembers();
 
     async function loadMembers(){
@@ -491,11 +505,11 @@
       const id = b.dataset.id;
       const { data:cur } = await sb.from('team_members').select('active').eq('id', id).maybeSingle();
       const { error } = await sb.from('team_members').update({ active: !cur?.active }).eq('id', id);
-      if(error) return alert('No se pudo actualizar: '+error.message);
+      if(error) return toast('No se pudo actualizar: '+error.message, 4200);
       loadMembers();
     });
 
-    // ================== UTILS ==================
+    /* ================== UTILS ================== */
     function iso(d){ const x=new Date(d); x.setHours(0,0,0,0); return x.toISOString().slice(0,10); }
     function fmtDate(d){
       const dd = (d instanceof Date)? d : new Date(d);
@@ -508,30 +522,6 @@
       if(loc==='office') return `<span class="pill office">Oficina</span>`;
       return `<span class="pill muted">—</span>`;
     }
-    ...
-  function pill(loc){
-    if(loc==='home') return '<span class="pill home">Casa</span>';
-    if(loc==='office') return '<span class="pill office">Oficina</span>';
-    return '<span class="pill muted"></span>';
-  }
-// Mostrar mensaje al cargar la página
-document.addEventListener('DOMContentLoaded', () => {
-  const msg = document.createElement('div');
-  msg.textContent = "Bienvenido al sistema de control de asistencia";
-  msg.style.textAlign = "center";
-  msg.style.margin = "10px";
-  msg.style.fontWeight = "bold";
-  document.body.prepend(msg);
-
-  // Ocultar mensaje después de 3 segundos
-  setTimeout(() => {
-    msg.remove();
-  }, 3000);
-  });
-
-</script>
-</body>
-</html>
   </script>
 </body>
 </html>
