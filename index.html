@@ -214,9 +214,6 @@
       monthCursor: null, // YYYY-MM first day
     };
 
-    // ====== SENTINELA PARA "VACÍO" (solución NOT NULL) ======
-    const LOC = { HOME: 'home', OFFICE: 'office', NONE: 'none' };
-
     // Helpers DOM
     const $ = (sel)=>document.querySelector(sel);
     const show = id => {
@@ -254,9 +251,7 @@
     $('#btnReset').onclick = async ()=>{
       const email = prompt('Escribe tu correo para resetear contraseña:');
       if(!email) return;
-      const { error } = await sb.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin
-      });
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
       if(error) alert('No se pudo enviar el correo: '+error.message);
       else alert('Te enviamos un correo con instrucciones.');
     };
@@ -295,7 +290,6 @@
       state.weekStart = monday;
       state.monthCursor = new Date(today.getFullYear(), today.getMonth(), 1);
 
-      // month input
       const mp = $('#monthPicker');
       mp.value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
       mp.addEventListener('change', ()=>{
@@ -317,56 +311,48 @@
       const ws = weekStart(), we = weekEnd();
       $('#weekRange').textContent = `Semana del ${fmtDate(ws)} al ${fmtDate(we)}`;
 
-      // etiqueta mes
       const ym = state.monthCursor || new Date(ws.getFullYear(), ws.getMonth(), 1);
       $('#monthLabel').textContent = ym.toLocaleDateString('es-CO',{month:'long', year:'numeric'});
 
       if(!state.orgId){ setKpis(null); drawUnits([]); return; }
 
-      // KPIs semana por org (ignorando 'none')
-      const { data:attW, error:e1 } = await sb
+      // KPIs semana (solo home/office)
+      const { data:attW } = await sb
         .from('attendance')
         .select('location')
         .gte('work_date', iso(ws))
         .lte('work_date', iso(we))
         .eq('org_id', state.orgId)
         .limit(2000);
-      if(e1){ console.error(e1); setKpis(null); }
-      else{
-        const base = (attW||[]).filter(r=>r.location===LOC.HOME || r.location===LOC.OFFICE);
-        const total = base.length;
-        const home  = base.filter(r=>r.location===LOC.HOME).length;
-        const office= base.filter(r=>r.location===LOC.OFFICE).length;
-        setKpis({ home: total? Math.round(home*100/total):0,
-                  office: total? Math.round(office*100/total):0 });
-      }
+      const base = (attW||[]).filter(r=>r.location==='home' || r.location==='office');
+      const total = base.length || 0;
+      const home  = base.filter(r=>r.location==='home').length;
+      const office= base.filter(r=>r.location==='office').length;
+      setKpis({ home: total? Math.round(home*100/total):0, office: total? Math.round(office*100/total):0 });
 
-      // Resumen por unidad del mes (ignorando 'none')
+      // Resumen por unidad (mes)
       const monthFrom = iso(new Date(ym.getFullYear(), ym.getMonth(), 1));
       const monthTo   = iso(new Date(ym.getFullYear(), ym.getMonth()+1, 0));
-      const { data:rows, error:e2 } = await sb
+      const { data:rows } = await sb
         .from('attendance')
         .select('location, team_members(unit)')
         .eq('org_id', state.orgId)
         .gte('work_date', monthFrom)
         .lte('work_date', monthTo)
         .limit(5000);
-      if(e2){ console.error(e2); drawUnits([]); }
-      else{
-        const byUnit = {};
-        for(const r of rows){
-          const u = r.team_members?.unit || '—';
-          if(!byUnit[u]) byUnit[u] = { unit:u, home:0, office:0, total:0 };
-          if(r.location===LOC.HOME)   byUnit[u].home++;
-          else if(r.location===LOC.OFFICE) byUnit[u].office++;
-          if(r.location===LOC.HOME || r.location===LOC.OFFICE) byUnit[u].total++;
-        }
-        const data = Object.values(byUnit).map(x=>{
-          const total = x.total || 1;
-          return { unit:x.unit, pHome:Math.round(x.home*100/total), pOffice:Math.round(x.office*100/total), total:x.total };
-        }).sort((a,b)=>a.unit.localeCompare(b.unit));
-        drawUnits(data);
+      const byUnit = {};
+      for(const r of (rows||[])){
+        const u = r.team_members?.unit || '—';
+        if(!byUnit[u]) byUnit[u] = { unit:u, home:0, office:0, total:0 };
+        if(r.location==='home')   byUnit[u].home++;
+        else if(r.location==='office') byUnit[u].office++;
+        if(r.location==='home' || r.location==='office') byUnit[u].total++;
       }
+      const data = Object.values(byUnit).map(x=>{
+        const t = x.total || 1;
+        return { unit:x.unit, pHome:Math.round(x.home*100/t), pOffice:Math.round(x.office*100/t), total:x.total };
+      }).sort((a,b)=>a.unit.localeCompare(b.unit));
+      drawUnits(data);
     }
     function setKpis(x){
       if(!x){ $('#kpiHome').textContent='—'; $('#kpiOffice').textContent='—'; return; }
@@ -403,7 +389,6 @@
 
       if(!state.orgId){ cont.innerHTML = '<div class="error">No hay organización</div>'; return; }
 
-      // Cargar unidades para filtro
       await populateUnitFilter();
 
       let data=null, err=null;
@@ -412,7 +397,10 @@
         err = error; data = rpc;
       }catch(e){ err=e; }
       if(err){
-        const days = rangeDays(ws,we).map(d=>iso(d));
+        const daysAll = rangeDays(ws,we);
+        const days = daysAll.filter(d=>d.getDay()!==0).map(d=>iso(d)); // **sin domingo**
+        const daysSet = new Set(days);
+
         const { data:members, error:em } = await sb.from('team_members')
           .select('id, full_name, unit')
           .eq('org_id', state.orgId)
@@ -427,25 +415,28 @@
         if(ea){ cont.innerHTML = `<div class="error">${ea.message}</div>`; return; }
 
         const rows=[];
-        for(const m of members){
+        for(const m of (members||[])){
           for(const s of days){
-            const hit = atts.find(a=>a.member_id===m.id && a.work_date===s);
-            const val = hit?.location === LOC.NONE ? null : hit?.location ?? null;
-            rows.push({ member_id:m.id, full_name:m.full_name, unit:m.unit||'—', work_date:s, location: val });
+            const hit = (atts||[]).find(a=>a.member_id===m.id && a.work_date===s);
+            rows.push({ member_id:m.id, full_name:m.full_name, unit:m.unit||'—', work_date:s, location: hit?.location ?? null });
           }
         }
         data = rows;
       }
 
-      const days = rangeDays(ws,we).map(d=>iso(d));
+      // Días de la grilla: LUN-SÁB
+      const days = rangeDays(ws,we).filter(d=>d.getDay()!==0).map(d=>iso(d));
+      const daysSet = new Set(days);
+
+      // Agrupar por miembro (ignorando registros en domingo)
       const by = new Map();
-      for(const r of data){
+      for(const r of (data||[])){
+        if(!daysSet.has(r.work_date)) continue; // **ignora domingo**
         if(!by.has(r.member_id)){
           by.set(r.member_id,{ id:r.member_id, full_name:r.full_name, unit:r.unit||'—', days:Object.fromEntries(days.map(x=>[x,null])) });
         }
         if(r.location != null){
-          const v = (r.location === LOC.NONE) ? null : r.location;
-          by.get(r.member_id).days[r.work_date] = v;
+          by.get(r.member_id).days[r.work_date] = r.location;
         }
       }
 
@@ -458,7 +449,7 @@
 
     async function populateUnitFilter(){
       const sel = $('#unitFilter');
-      if(sel.options.length) return; // ya poblado
+      if(sel.options.length) return;
       const { data } = await sb.from('team_members')
         .select('unit').eq('org_id', state.orgId).not('unit','is',null);
       const units = Array.from(new Set((data||[]).map(r=>r.unit))).sort();
@@ -468,12 +459,12 @@
 
     function renderCalendarGrid(rows, days){
       const header = `
-        <div class="cal-head">
+        <div class="cal-head" style="grid-template-columns:260px repeat(${days.length},1fr)">
           <div class="cell head">Miembro</div>
           ${days.map(d=>`<div class="cell head">${fmtDay(d)}</div>`).join('')}
         </div>`;
       const body = rows.map(r=>`
-        <div class="cal-row">
+        <div class="cal-row" style="grid-template-columns:260px repeat(${days.length},1fr)">
           <div class="cell member">
             <div class="member-name">${r.full_name}</div>
             <div class="member-unit">${r.unit}</div>
@@ -486,7 +477,7 @@
       return header + body;
     }
 
-    // Toggle 3 estados: home -> office -> none -> home
+    // Toggle 3 estados: home -> office -> (vacío = borrar) -> home
     document.addEventListener('click', async (e)=>{
       const btn = e.target.closest('.cell.day'); if(!btn) return;
       if(!state.orgId) return;
@@ -495,17 +486,26 @@
       const d  = btn.dataset.date;
 
       const raw = btn.textContent.trim();
-      const current = raw === 'Casa' ? LOC.HOME : raw === 'Oficina' ? LOC.OFFICE : LOC.NONE;
-      const next = current === LOC.HOME ? LOC.OFFICE
-                : current === LOC.OFFICE ? LOC.NONE
-                : LOC.HOME;
+      const current = raw === 'Casa' ? 'home' : raw === 'Oficina' ? 'office' : 'none';
+      const next = current === 'home' ? 'office'
+                : current === 'office' ? 'none'
+                : 'home';
 
-      const { error } = await sb.from('attendance').upsert(
-        { org_id: state.orgId, member_id:id, work_date:d, location: next },
-        { onConflict: 'org_id,member_id,work_date' }
-      );
-      if(error){ alert((next===LOC.NONE?'No se pudo limpiar: ':'No se pudo marcar: ') + error.message); return; }
-
+      if(next === 'none'){
+        const { error } = await sb
+          .from('attendance')
+          .delete()
+          .eq('org_id', state.orgId)
+          .eq('member_id', id)
+          .eq('work_date', d);
+        if(error){ alert('No se pudo limpiar: '+error.message); return; }
+      }else{
+        const { error } = await sb.from('attendance').upsert(
+          { org_id: state.orgId, member_id:id, work_date:d, location: next },
+          { onConflict: 'org_id,member_id,work_date' }
+        );
+        if(error){ alert('No se pudo marcar: '+error.message); return; }
+      }
       loadCalendar();
     });
 
@@ -565,8 +565,8 @@
     function fmtDay(isoStr){ return fmtDate(new Date(isoStr)); }
     function rangeDays(from,to){ const out=[]; const d=new Date(from); while(d<=to){ out.push(new Date(d)); d.setDate(d.getDate()+1); } return out; }
     function pill(loc){
-      if(loc === LOC.HOME)   return `<span class="pill home">Casa</span>`;
-      if(loc === LOC.OFFICE) return `<span class="pill office">Oficina</span>`;
+      if(loc === 'home')   return `<span class="pill home">Casa</span>`;
+      if(loc === 'office') return `<span class="pill office">Oficina</span>`;
       return `<span class="pill muted">—</span>`;
     }
   </script>
