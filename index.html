@@ -52,6 +52,7 @@
 
     /* Calendar */
     .calendar{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px}
+    /* 6 días (lun-sáb) + columna miembro */
     .cal-head,.cal-row{display:grid;grid-template-columns:260px repeat(6,1fr);gap:8px;align-items:center}
     .cell{background:var(--muted);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;color:var(--text)}
     .cell.head{background:#0c1526;font-weight:700}
@@ -70,7 +71,6 @@
     input::placeholder{color:#94a3b8}
     .hint{font-size:.9rem;opacity:.85;color:var(--text)}
 
-    /* Mini “by Systemgroup” tamaño similar a “Sesión” */
     .brand-small{font-size:14px;font-weight:600;opacity:.9}
   </style>
 </head>
@@ -89,7 +89,7 @@
       <button class="btn" id="btnLogout">Salir</button>
     </div>
 
-    <!-- ============== LOGIN (email/contraseña) ============== -->
+    <!-- ============== LOGIN ============== -->
     <section id="viewAuth" style="display:none">
       <div class="card auth">
         <h3 class="title">Inicia sesión</h3>
@@ -111,6 +111,10 @@
     <!-- ============== DASHBOARD ============== -->
     <section id="viewDashboard" class="grid">
       <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn" id="btnDashPrev">← Semana anterior</button>
+          <button class="btn" id="btnDashNext">Semana siguiente →</button>
+        </div>
         <div class="muted" id="weekRange">Semana</div>
         <div class="row" style="display:flex;gap:8px;align-items:center">
           <span class="muted">Mes:</span>
@@ -211,7 +215,7 @@
       user: null,
       orgId: null,
       weekStart: null, // Monday
-      monthRef: null,  // Date del primer día del mes seleccionado (dashboard)
+      monthRef: null,  // Primer día del mes seleccionado
       unitFilter: "__ALL__"
     };
 
@@ -223,14 +227,24 @@
         if(!el) return;
         el.style.display = (v===id?'':'none');
       });
-      // tabs
       ['tabDash','tabCal','tabTeam'].forEach(t=>$('#'+t).classList.remove('active'));
       if(id==='viewDashboard') $('#tabDash').classList.add('active');
       if(id==='viewCalendar')  $('#tabCal').classList.add('active');
       if(id==='viewTeams')     $('#tabTeam').classList.add('active');
     };
 
-    // ================== AUTH (email/contraseña) ==================
+    // ========= util para forzar LUNES =========
+    function ensureMonday(){
+      const d = new Date(state.weekStart);
+      const off = (d.getDay()+6)%7; // 0 si ya es lunes
+      if(off!==0){
+        d.setDate(d.getDate()-off);
+        d.setHours(0,0,0,0);
+        state.weekStart = d;
+      }
+    }
+
+    // ================== AUTH ==================
     $('#btnDoLogin').onclick = async ()=>{
       const email = $('#authEmail').value.trim();
       const pass  = $('#authPass').value;
@@ -271,28 +285,26 @@
     };
 
     // ================== NAV ==================
-    $('#tabDash').onclick = async ()=>{ show('viewDashboard'); await loadDashboard(); };
-    $('#tabCal').onclick  = async ()=>{ show('viewCalendar');  await initCalendar();  };
+    $('#tabDash').onclick = async ()=>{ show('viewDashboard'); ensureMonday(); await loadDashboard(); };
+    $('#tabCal').onclick  = async ()=>{ show('viewCalendar');  ensureMonday(); await initCalendar();  };
     $('#tabTeam').onclick = async ()=>{ show('viewTeams');     await loadMembers();   };
 
     // ================== INIT ==================
     bootstrap();
     async function bootstrap(){
       const { data:{ user } } = await sb.auth.getUser();
-      if(!user){
-        show('viewAuth');
-        return;
-      }
+      if(!user){ show('viewAuth'); return; }
       state.user = user;
       $('#sessionInfo').textContent = 'Sesión: ' + (user.email || user.id);
 
       const { data:prof } = await sb.from('profiles').select('org_id').eq('id', user.id).maybeSingle();
       state.orgId = prof?.org_id || null;
 
-      // semana actual (lunes)
+      // semana actual (llevamos a LUNES)
       const today = new Date();
       const monday = new Date(today);
       monday.setDate(today.getDate() - ((today.getDay()+6)%7));
+      monday.setHours(0,0,0,0);
       state.weekStart = monday;
 
       // mes actual
@@ -304,12 +316,17 @@
         loadDashboard();
       });
 
+      // botones de semana en DASHBOARD
+      $('#btnDashPrev').onclick = ()=>{ shiftWeek(-7); loadDashboard(); };
+      $('#btnDashNext').onclick = ()=>{ shiftWeek(+7); loadDashboard(); };
+
       show('viewDashboard');
       await loadDashboard();
     }
 
     // ================== DASHBOARD ==================
     async function loadDashboard(){
+      ensureMonday();
       const ws = weekStart(), we = weekEnd();
       $('#weekRange').textContent = `Semana del ${fmtDate(ws)} al ${fmtDate(we)}`;
 
@@ -318,48 +335,42 @@
 
       if(!state.orgId){ setKpis(null); drawUnits([]); return; }
 
-      // KPIs semana por org
-      const { data:attW, error:e1 } = await sb
+      const { data:attW } = await sb
         .from('attendance')
         .select('location')
         .gte('work_date', iso(ws))
         .lte('work_date', iso(we))
         .eq('org_id', state.orgId)
         .limit(2000);
-      if(e1){ console.error(e1); setKpis(null); }
-      else{
-        const total = attW.length || 1;
-        const home = attW.filter(r=>r.location==='home').length;
-        const office= attW.filter(r=>r.location==='office').length;
-        setKpis({ home: Math.round(home*100/total), office: Math.round(office*100/total) });
-      }
 
-      // Resumen por unidad del mes (según mes seleccionado)
+      const total = (attW||[]).length || 1;
+      const home = (attW||[]).filter(r=>r.location==='home').length;
+      const office= (attW||[]).filter(r=>r.location==='office').length;
+      setKpis({ home: Math.round(home*100/total), office: Math.round(office*100/total) });
+
       const monthFrom = iso(new Date(state.monthRef.getFullYear(), state.monthRef.getMonth(), 1));
       const monthTo   = iso(new Date(state.monthRef.getFullYear(), state.monthRef.getMonth()+1, 0));
-      const { data:rows, error:e2 } = await sb
+      const { data:rows } = await sb
         .from('attendance')
         .select('location, team_members(unit)')
         .eq('org_id', state.orgId)
         .gte('work_date', monthFrom)
         .lte('work_date', monthTo)
         .limit(5000);
-      if(e2){ console.error(e2); drawUnits([]); }
-      else{
-        const byUnit = {};
-        for(const r of rows){
-          const u = r.team_members?.unit || '—';
-          if(!byUnit[u]) byUnit[u] = { unit:u, home:0, office:0, total:0 };
-          if(r.location==='home') byUnit[u].home++;
-          else if(r.location==='office') byUnit[u].office++;
-          byUnit[u].total++;
-        }
-        const data = Object.values(byUnit).map(x=>{
-          const total = x.total || 1;
-          return { unit:x.unit, pHome:Math.round(x.home*100/total), pOffice:Math.round(x.office*100/total), total:x.total };
-        }).sort((a,b)=>a.unit.localeCompare(b.unit));
-        drawUnits(data);
+
+      const byUnit = {};
+      for(const r of (rows||[])){
+        const u = r.team_members?.unit || '—';
+        if(!byUnit[u]) byUnit[u] = { unit:u, home:0, office:0, total:0 };
+        if(r.location==='home') byUnit[u].home++;
+        else if(r.location==='office') byUnit[u].office++;
+        byUnit[u].total++;
       }
+      const data = Object.values(byUnit).map(x=>{
+        const total = x.total || 1;
+        return { unit:x.unit, pHome:Math.round(x.home*100/total), pOffice:Math.round(x.office*100/total), total:x.total };
+      }).sort((a,b)=>a.unit.localeCompare(b.unit));
+      drawUnits(data);
     }
     function setKpis(x){
       if(!x){ $('#kpiHome').textContent='—'; $('#kpiOffice').textContent='—'; return; }
@@ -385,11 +396,12 @@
     $('#btnNextWeek').onclick = ()=>{ shiftWeek(+7); initCalendar(); };
     $('#unitFilter').addEventListener('change', ()=>{ state.unitFilter = $('#unitFilter').value; initCalendar(); });
 
-    function shiftWeek(delta){ const d = weekStart(); d.setDate(d.getDate()+delta); state.weekStart = d; }
-    function weekStart(){ return new Date(state.weekStart); }
+    function shiftWeek(delta){ const d = weekStart(); d.setDate(d.getDate()+delta); d.setHours(0,0,0,0); state.weekStart = d; ensureMonday(); }
+    function weekStart(){ ensureMonday(); return new Date(state.weekStart); }
     function weekEnd(){ const d = weekStart(); d.setDate(d.getDate()+6); return d; }
 
     async function initCalendar(){
+      ensureMonday();
       const cont = $('#calendarContainer');
       cont.textContent = 'Cargando…';
       const ws = weekStart(), we = weekEnd();
@@ -411,6 +423,7 @@
     }
 
     async function loadCalendar(){
+      ensureMonday();
       const cont = $('#calendarContainer');
       cont.textContent = 'Cargando…';
       const ws = weekStart(), we = weekEnd();
@@ -422,10 +435,7 @@
         .eq('org_id', state.orgId)
         .eq('active', true)
         .order('full_name');
-
-      if(state.unitFilter !== "__ALL__"){
-        qMembers = qMembers.eq('unit', state.unitFilter);
-      }
+      if(state.unitFilter !== "__ALL__"){ qMembers = qMembers.eq('unit', state.unitFilter); }
       const { data:members, error:em } = await qMembers;
       if(em){ cont.innerHTML = `<div class="error">${em.message}</div>`; return; }
 
@@ -437,11 +447,11 @@
       if(ea){ cont.innerHTML = `<div class="error">${ea.message}</div>`; return; }
 
       const rows=[];
-      for(const m of members){
+      for(const m of (members||[])){
         const map = Object.fromEntries(days.map(x=>[x,null]));
-        for(const a of atts){
+        for(const a of (atts||[])){
           if(a.member_id===m.id && map.hasOwnProperty(a.work_date)){
-            map[a.work_date] = a.location; // home|office o null si no hay
+            map[a.work_date] = a.location;
           }
         }
         rows.push({ id:m.id, full_name:m.full_name, unit:m.unit||'—', days:map });
@@ -476,7 +486,7 @@
       return header + body;
     }
 
-    // Toggle con 3 estados: home -> office -> none (elimina registro) -> home
+    // Toggle 3 estados: home -> office -> none (borra) -> home
     document.addEventListener('click', async (e)=>{
       const btn = e.target.closest('.cell.day'); if(!btn) return;
       if(!state.orgId) return;
@@ -485,7 +495,6 @@
       const next = current==='home' ? 'office' : current==='office' ? 'none' : 'home';
 
       if(next==='none'){
-        // eliminar registro
         const { error } = await sb.from('attendance')
           .delete()
           .eq('org_id', state.orgId)
@@ -493,13 +502,11 @@
           .eq('work_date', d);
         if(error){ alert('No se pudo limpiar: '+error.message); return; }
       }else{
-        // upsert con home|office
         const { error } = await sb.from('attendance').upsert({
           org_id: state.orgId, member_id:id, work_date:d, location: next
         }, { onConflict: 'org_id,member_id,work_date' });
         if(error){ alert('No se pudo marcar: '+error.message); return; }
       }
-      // Actualizar visual sin recargar todo
       btn.dataset.status = next;
       btn.innerHTML = pill(next==='none'?null:next);
     });
@@ -564,7 +571,7 @@
     function rangeDaysNoSunday(from,to){
       const out=[]; const d=new Date(from);
       while(d<=to){
-        if(d.getDay()!==0) out.push(new Date(d)); // 0 = Domingo (no se muestra)
+        if(d.getDay()!==0) out.push(new Date(d)); // 0 = Domingo
         d.setDate(d.getDate()+1);
       }
       return out;
