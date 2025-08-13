@@ -10,7 +10,7 @@
       --bg:#0b0f17; --panel:#0f172a; --muted:#111827; --line:#1f2937; --text:#e5e7eb;
       --brand:#7dd3fc; --ok:#86efac; --warn:#fbbf24; --bad:#f87171;
       --pill:#0b1220; --pill-b:#1f2435;
-      --home-bg:#1e293b; --home-fg:#93c5fd; 
+      --home-bg:#1e293b; --home-fg:#93c5fd;
       --office-bg:#0f2f24; --office-fg:#86efac;
     }
     *{box-sizing:border-box}
@@ -20,7 +20,7 @@
 
     /* NAV */
     .top{display:flex;align-items:center;gap:10px;margin-bottom:16px}
-    .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:22px;color:var(--text)}
+    .logo{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;color:var(--text)} /* mismo tamaño que “Sesión” */
     .tabs{display:flex;gap:8px;margin-left:16px}
     .tab{background:var(--panel);border:1px solid var(--line);padding:10px 14px;border-radius:10px;cursor:pointer;color:var(--text)}
     .tab.active{outline:2px solid #3b82f6}
@@ -68,8 +68,8 @@
     input,select{background:#0f172a;border:1px solid var(--line);border-radius:10px;padding:10px;color:var(--text)}
     input::placeholder{color:#94a3b8}
 
-    /* Garantizar textos blancos si el navegador pone estilos raros */
-    .title, .logo span, .th, .kpi, .muted, .td, .tab, .btn, .member-name, .member-unit { color: var(--text); }
+    /* Seguridad de color para textos */
+    .title, .th, .kpi, .muted, .td, .tab, .btn, .member-name, .member-unit { color: var(--text); }
   </style>
 </head>
 <body>
@@ -77,10 +77,7 @@
 
     <!-- ============== HEADER ============== -->
     <div class="top">
-      <div class="logo">
-        <img src="./Systemgroup.jpg" alt="Systemgroup" style="height:28px;border-radius:4px;object-fit:contain;display:block" />
-        <span>Flexibility by Systemgroup</span>
-      </div>
+      <div class="logo">Flexibility by Systemgroup</div>
       <div class="tabs">
         <button class="tab active" id="tabDash">Dashboard</button>
         <button class="tab" id="tabCal">Calendario</button>
@@ -90,7 +87,7 @@
       <button class="btn" id="btnLogout">Salir</button>
     </div>
 
-    <!-- ============== LOGIN (email/contraseña) ============== -->
+    <!-- ============== LOGIN ============== -->
     <section id="viewAuth" style="display:none">
       <div class="card auth">
         <h3 class="title">Inicia sesión</h3>
@@ -109,8 +106,12 @@
 
     <!-- ============== DASHBOARD ============== -->
     <section id="viewDashboard" class="grid">
-      <div class="card" style="display:flex;align-items:center;justify-content:space-between">
-        <div class="muted" id="weekRange">Semana</div>
+      <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <div class="row" style="gap:8px;align-items:center">
+          <button class="btn" id="btnDashPrevWeek">← Semana anterior</button>
+          <div class="muted" id="weekRange">Semana</div>
+          <button class="btn" id="btnDashNextWeek">Semana siguiente →</button>
+        </div>
         <div class="row" style="gap:8px;align-items:center">
           <label class="muted" for="monthPicker">Mes:</label>
           <input id="monthPicker" type="month" style="background:#0f172a;border:1px solid var(--line);border-radius:10px;padding:8px;color:var(--text)">
@@ -301,6 +302,10 @@
         loadDashboard();
       });
 
+      // Controles de semana en Dashboard
+      $('#btnDashPrevWeek').onclick = ()=>{ shiftWeek(-7); loadDashboard(); };
+      $('#btnDashNextWeek').onclick = ()=>{ shiftWeek(+7); loadDashboard(); };
+
       show('viewDashboard');
       await loadDashboard();
     }
@@ -310,7 +315,6 @@
       const ws = weekStart(), we = weekEnd();
       $('#weekRange').textContent = `Semana del ${fmtDate(ws)} al ${fmtDate(we)}`;
 
-      // Mes seleccionado
       const m0 = new Date(state.monthRef.getTime());
       $('#monthLabel').textContent = m0.toLocaleDateString('es-CO', { month:'long', year:'numeric' });
 
@@ -424,15 +428,13 @@
         data = rows;
       }
 
-      // DÍAS SIN DOMINGO
+      // QUITAR DOMINGOS
       const days = rangeDays(ws,we).filter(d=>d.getDay()!==0);
       const isoDays = days.map(d=>iso(d));
 
       const by = new Map();
       for(const r of data){
-        // Ignorar registros que caen en domingo (por si vienen del RPC)
-        if(!isoDays.includes(r.work_date)) continue;
-
+        if(!isoDays.includes(r.work_date)) continue; // ignora domingo si vino del RPC
         if(!by.has(r.member_id)){
           by.set(r.member_id,{ id:r.member_id, full_name:r.full_name, unit:r.unit||'—', days:Object.fromEntries(isoDays.map(x=>[x,null])) });
         }
@@ -461,7 +463,7 @@
       return header + body;
     }
 
-    // Toggle con 3 estados: home -> office -> null -> home
+    // Toggle 3 estados: home -> office -> null -> home
     document.addEventListener('click', async (e)=>{
       const btn = e.target.closest('.cell.day'); if(!btn) return;
       if(!state.orgId) return;
