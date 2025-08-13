@@ -68,19 +68,6 @@
     input,select{background:#0f172a;border:1px solid var(--line);border-radius:10px;padding:10px;color:var(--text)}
     input::placeholder{color:#94a3b8}
     .hint{font-size:.9rem;opacity:.85;color:var(--text)}
-
-    /* Welcome banner (fade) */
-    .welcome{
-      position:fixed;left:50%;transform:translateX(-50%);
-      top:16px;background:#0f172a;border:1px solid var(--line);padding:10px 14px;border-radius:10px;
-      animation:fadeInOut 3s ease forwards; pointer-events:none;
-    }
-    @keyframes fadeInOut{
-      0%{opacity:0;transform:translateX(-50%) translateY(-6px)}
-      10%{opacity:1;transform:translateX(-50%) translateY(0)}
-      80%{opacity:1}
-      100%{opacity:0;transform:translateX(-50%) translateY(-6px)}
-    }
   </style>
 </head>
 <body>
@@ -110,6 +97,26 @@
           <button class="btn primary" id="btnDoLogin">Entrar</button>
           <button class="btn" id="btnDoSignup">Crear cuenta</button>
         </div>
+
+        <!-- Enlace para recuperación -->
+        <div class="hint" style="margin-top:6px">
+          <a href="#" id="lnkForgot">¿Olvidaste tu contraseña?</a>
+        </div>
+
+        <!-- Panel para definir nueva contraseña (cuando vienes desde el correo) -->
+        <div id="viewReset" class="card" style="display:none;margin-top:10px">
+          <div class="row">
+            <input id="newPass1" type="password" placeholder="Nueva contraseña" style="flex:1 1 220px">
+            <input id="newPass2" type="password" placeholder="Repite la contraseña" style="flex:1 1 220px">
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button class="btn primary" id="btnSetNewPass">Guardar nueva contraseña</button>
+            <button class="btn" id="btnCancelReset" type="button">Cancelar</button>
+          </div>
+          <div class="hint" style="margin-top:8px">Este paso aparece cuando entras desde el correo de recuperación.</div>
+          <div id="resetError" class="error" style="margin-top:8px;display:none"></div>
+        </div>
+
         <div id="authError" class="error" style="margin-top:10px;display:none"></div>
       </div>
     </section>
@@ -167,10 +174,7 @@
     <!-- ============== EQUIPOS ============== -->
     <section id="viewTeams" style="display:none" class="grid">
       <div class="card">
-        <div style="display:flex;align-items:center;gap:10px;justify-content:space-between">
-          <h3 class="title" style="margin:0">Crear miembro</h3>
-          <button class="btn" id="btnEnsureOrg" style="display:none">Crear mi organización</button>
-        </div>
+        <h3 class="title">Crear miembro</h3>
         <div class="row">
           <input id="inName" placeholder="Nombre completo" style="flex:2;min-width:240px">
           <input id="inEmail" placeholder="Email (opcional)" style="flex:2;min-width:220px">
@@ -209,25 +213,26 @@
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
     // ================== STATE ==================
-    const state = { user:null, orgId:null, weekStart:null };
+    const state = {
+      user: null,
+      orgId: null,
+      weekStart: null, // Monday
+    };
 
     // Helpers DOM
     const $ = (sel)=>document.querySelector(sel);
     const show = id => {
       ['viewAuth','viewDashboard','viewCalendar','viewTeams'].forEach(v=>{
-        const el = $('#'+v); if(!el) return; el.style.display = (v===id?'':'none');
+        const el = $('#'+v);
+        if(!el) return;
+        el.style.display = (v===id?'':'none');
       });
+      // marcar pestañas (solo cuando estamos logueados)
       ['tabDash','tabCal','tabTeam'].forEach(t=>$('#'+t).classList.remove('active'));
       if(id==='viewDashboard') $('#tabDash').classList.add('active');
       if(id==='viewCalendar')  $('#tabCal').classList.add('active');
       if(id==='viewTeams')     $('#tabTeam').classList.add('active');
     };
-
-    // ===== Welcome banner (suave) =====
-    function welcome(msg="Bienvenido al sistema de asistencia"){
-      const div=document.createElement('div'); div.className='welcome'; div.textContent=msg; document.body.appendChild(div);
-      setTimeout(()=>div.remove(), 3000);
-    }
 
     // ================== AUTH (email/contraseña) ==================
     $('#btnDoLogin').onclick = async ()=>{
@@ -236,32 +241,79 @@
       setAuthError('');
       if(!email || !pass) return setAuthError('Escribe correo y contraseña.');
       const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-      if(error){ setAuthError('No se pudo iniciar sesión.'); return; }
-      await bootstrap(true);
+      if(error){ setAuthError('No se pudo iniciar sesión: '+error.message); return; }
+      await bootstrap();
     };
+
     $('#btnDoSignup').onclick = async ()=>{
       const email = $('#authEmail').value.trim();
       const pass  = $('#authPass').value;
       setAuthError('');
       if(!email || !pass) return setAuthError('Escribe correo y contraseña.');
-      const { data, error } = await sb.auth.signUp({ email, password: pass });
-      if(error){ setAuthError(error.message.includes('already')?'Este correo ya está registrado.':'No se pudo crear la cuenta.'); return; }
-      // Si tu proyecto tiene Confirm email activo, el usuario deberá confirmar por correo.
-      await bootstrap(true);
+      const { error } = await sb.auth.signUp({ email, password: pass });
+      if(error){ setAuthError('No se pudo crear la cuenta: '+error.message); return; }
+      alert('Cuenta creada. Si tu proyecto requiere confirmación, revisa tu correo.');
+      await bootstrap();
     };
+
     function setAuthError(msg){
-      const box = $('#authError'); if(!box) return;
+      const box = $('#authError');
       if(!msg){ box.style.display='none'; box.textContent=''; }
       else { box.textContent = msg; box.style.display='block'; }
     }
 
     $('#btnLogout').onclick = async()=>{
       await sb.auth.signOut();
-      state.user = null; state.orgId = null;
+      state.user = null;
       $('#sessionInfo').textContent = 'Sesión: —';
-      $('#orgBadge').textContent = 'Org: —';
       show('viewAuth');
     };
+
+    // ======= RECUPERAR / REDEFINIR CONTRASEÑA =======
+    $('#lnkForgot').onclick = async (e)=>{
+      e.preventDefault();
+      const email = $('#authEmail').value.trim();
+      if(!email){ return setAuthError('Escribe tu correo y luego pulsa “¿Olvidaste tu contraseña?”'); }
+      const redirect = location.origin + location.pathname; // vuelve a este index
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: redirect });
+      if(error){ setAuthError('No se pudo enviar el correo: ' + error.message); return; }
+      setAuthError('Te enviamos un correo con el enlace para cambiar la contraseña.');
+    };
+
+    sb.auth.onAuthStateChange((event, session)=>{
+      if(event === 'PASSWORD_RECOVERY'){
+        showResetForm(true);
+      }
+    });
+
+    if (location.hash.includes('access_token') || location.hash.includes('type=recovery')) {
+      showResetForm(true);
+    }
+
+    $('#btnSetNewPass').onclick = async ()=>{
+      const p1 = $('#newPass1').value;
+      const p2 = $('#newPass2').value;
+      setResetError('');
+      if(!p1 || !p2) return setResetError('Escribe y confirma tu nueva contraseña.');
+      if(p1 !== p2)  return setResetError('Las contraseñas no coinciden.');
+      const { error } = await sb.auth.updateUser({ password: p1 });
+      if(error){ setResetError('No se pudo actualizar: ' + error.message); return; }
+      showResetForm(false);
+      alert('¡Listo! Tu contraseña fue cambiada. Inicia sesión normalmente.');
+    };
+
+    $('#btnCancelReset').onclick = ()=> showResetForm(false);
+
+    function showResetForm(showFlag){
+      $('#viewReset').style.display = showFlag ? '' : 'none';
+      if(showFlag){ $('#authError').style.display = 'none'; }
+    }
+    function setResetError(msg){
+      const el = $('#resetError');
+      if(!msg){ el.style.display='none'; el.textContent=''; }
+      else { el.textContent = msg; el.style.display='block'; }
+    }
+    // ======= FIN RECUPERACIÓN =======
 
     // ================== NAV ==================
     $('#tabDash').onclick = async ()=>{ show('viewDashboard'); await loadDashboard(); };
@@ -269,58 +321,32 @@
     $('#tabTeam').onclick = async ()=>{ show('viewTeams');     await loadMembers();   };
 
     // ================== INIT ==================
-    bootstrap(false);
-    async function bootstrap(showWelcome){
-      // 1) usuario actual
+    bootstrap();
+    async function bootstrap(){
+      // usuario actual
       const { data:{ user } } = await sb.auth.getUser();
-      if(!user){ show('viewAuth'); return; }
+      if(!user){
+        show('viewAuth');
+        return;
+      }
       state.user = user;
       $('#sessionInfo').textContent = 'Sesión: ' + (user.email || user.id);
 
-      // 2) asegurar organización
-      await ensureOrganization();
+      // org del perfil
+      const { data:prof } = await sb.from('profiles').select('org_id').eq('id', user.id).maybeSingle();
+      state.orgId = prof?.org_id || null;
+      $('#orgBadge').textContent = state.orgId ? ('Org: '+state.orgId) : 'Org: —';
 
-      // 3) semana actual (lunes)
+      // semana actual (lunes)
       const today = new Date();
       const monday = new Date(today);
       monday.setDate(today.getDate() - ((today.getDay()+6)%7));
       state.weekStart = monday;
 
-      // 4) vista inicial
+      // vista inicial
       show('viewDashboard');
-      if(showWelcome) welcome();
       await loadDashboard();
     }
-
-    // ====== Organización: crea una si el perfil no tiene org_id ======
-    async function ensureOrganization(){
-      // lee perfil
-      const { data:prof, error:ep } = await sb.from('profiles').select('org_id').eq('id', state.user.id).maybeSingle();
-      if(ep){ console.warn('profiles error', ep); }
-      if(prof?.org_id){ state.orgId = prof.org_id; $('#orgBadge').textContent = 'Org: ' + state.orgId; $('#btnEnsureOrg').style.display='none'; return; }
-
-      // intenta crear en tabla orgs (si existe)
-      let newOrgId = null;
-      try{
-        const orgName = (state.user.email || 'Mi organización').split('@')[0];
-        const { data:orgRow, error:eorg } = await sb.from('orgs').insert({ name: orgName }).select('id').single();
-        if(!eorg && orgRow?.id) newOrgId = orgRow.id;
-      }catch(e){ /* puede que orgs no exista; seguimos con plan B */ }
-
-      // Si no se pudo, usa el user.id (plan B) para no bloquear al usuario
-      if(!newOrgId) newOrgId = state.user.id;
-
-      // actualiza profile
-      const { error:up } = await sb.from('profiles').update({ org_id: newOrgId }).eq('id', state.user.id);
-      if(up){ console.warn('No se pudo actualizar profiles.org_id', up); }
-
-      state.orgId = newOrgId;
-      $('#orgBadge').textContent = 'Org: ' + state.orgId;
-      $('#btnEnsureOrg').style.display='none';
-    }
-
-    // Botón visible solo si falta org (por si el usuario entra directo a Equipos)
-    $('#btnEnsureOrg').onclick = async ()=>{ await ensureOrganization(); await loadMembers(); };
 
     // ================== DASHBOARD ==================
     async function loadDashboard(){
@@ -329,13 +355,7 @@
       const ym = new Date(ws.getFullYear(), ws.getMonth(), 1);
       $('#monthLabel').textContent = `${ym.getMonth()+1}/${ym.getFullYear()}`;
 
-      if(!state.orgId){
-        setKpis(null); drawUnits([]);
-        $('#btnEnsureOrg').style.display='inline-block';
-        return;
-      } else {
-        $('#btnEnsureOrg').style.display='none';
-      }
+      if(!state.orgId){ setKpis(null); drawUnits([]); return; }
 
       // KPIs semana por org
       const { data:attW, error:e1 } = await sb
@@ -413,7 +433,7 @@
       const ws = weekStart(), we = weekEnd();
       $('#weekLabel').textContent = `Semana del ${fmtDate(ws)} al ${fmtDate(we)}`;
 
-      if(!state.orgId){ cont.innerHTML = '<div class="error">No hay organización</div>'; $('#btnEnsureOrg').style.display='inline-block'; return; }
+      if(!state.orgId){ cont.innerHTML = '<div class="error">No hay organización</div>'; return; }
 
       let data=null, err=null;
       try{
@@ -421,6 +441,7 @@
         err = error; data = rpc;
       }catch(e){ err=e; }
       if(err){
+        // Fallback local
         const days = rangeDays(ws,we);
         const { data:members, error:em } = await sb.from('team_members')
           .select('id, full_name, unit')
@@ -479,7 +500,7 @@
     // Toggle rápido desde calendario
     document.addEventListener('click', async (e)=>{
       const btn = e.target.closest('.cell.day'); if(!btn) return;
-      if(!state.orgId) return alert('Primero crea tu organización.');
+      if(!state.orgId) return;
       const id = btn.dataset.memberId, d = btn.dataset.date;
       const current = btn.textContent.trim();
       const next = current==='Casa' ? 'office' : current==='Oficina' ? 'home' : 'home';
@@ -492,7 +513,7 @@
 
     // ================== EQUIPOS ==================
     $('#btnCreate').onclick = async ()=>{
-      if(!state.orgId){ $('#btnEnsureOrg').style.display='inline-block'; return alert('No hay organización. Presiona "Crear mi organización".'); }
+      if(!state.orgId) return alert('No hay organización');
       const name = $('#inName').value.trim();
       const email= $('#inEmail').value.trim() || null;
       const unit = $('#inUnit').value.trim() || null;
@@ -500,18 +521,13 @@
       const { error } = await sb.from('team_members').insert({ org_id: state.orgId, full_name:name, email, unit, active:true });
       if(error) return alert('Error creando miembro: '+error.message);
       $('#inName').value=''; $('#inEmail').value=''; $('#inUnit').value='';
-      await loadMembers(); alert('Miembro creado');
+      await loadMembers();
+      alert('Miembro creado');
     };
     $('#btnRefreshMembers').onclick = ()=>loadMembers();
 
     async function loadMembers(){
-      if(!state.orgId){
-        $('#membersBody').innerHTML = `<tr class="tr"><td class="td" colspan="5">—</td></tr>`;
-        $('#btnEnsureOrg').style.display='inline-block';
-        return;
-      } else {
-        $('#btnEnsureOrg').style.display='none';
-      }
+      if(!state.orgId){ $('#membersBody').innerHTML = `<tr class="tr"><td class="td" colspan="5">—</td></tr>`; return; }
       const q = $('#inFilter').value.trim();
       let req = sb.from('team_members').select('id, full_name, unit, email, active').eq('org_id', state.orgId).order('full_name');
       if(q) req = req.ilike('full_name', `%${q}%`);
@@ -544,7 +560,10 @@
 
     // ================== UTILS ==================
     function iso(d){ const x=new Date(d); x.setHours(0,0,0,0); return x.toISOString().slice(0,10); }
-    function fmtDate(d){ const dd = (d instanceof Date)? d : new Date(d); return dd.toLocaleDateString('es-CO',{weekday:'short', day:'2-digit', month:'2-digit'}).replace('.',''); }
+    function fmtDate(d){
+      const dd = (d instanceof Date)? d : new Date(d);
+      return dd.toLocaleDateString('es-CO',{weekday:'short', day:'2-digit', month:'2-digit'}).replace('.','');
+    }
     function fmtDay(isoStr){ return fmtDate(new Date(isoStr)); }
     function rangeDays(from,to){ const out=[]; const d=new Date(from); while(d<=to){ out.push(new Date(d)); d.setDate(d.getDate()+1); } return out; }
     function pill(loc){
