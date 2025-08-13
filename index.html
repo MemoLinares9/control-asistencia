@@ -48,8 +48,8 @@
     .pill.muted{opacity:.7}
 
     /* Calendar */
-    .calendar{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px}
-    .cal-head,.cal-row{display:grid;grid-template-columns:260px repeat(7,1fr);gap:8px;align-items:center}
+    .calendar{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px;--cols:7}
+    .cal-head,.cal-row{display:grid;grid-template-columns:260px repeat(var(--cols,7),1fr);gap:8px;align-items:center}
     .cell{background:var(--muted);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;color:var(--text)}
     .cell.head{background:#0c1526;font-weight:700}
     .cell.member{text-align:left}
@@ -98,7 +98,7 @@
       </div>
     </section>
 
-    <!-- DASHBOARD -->
+    <!-- DASHBOARD (SIN CAMBIOS DE LÓGICA) -->
     <section id="viewDashboard" class="grid" style="display:none">
       <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
         <div class="row" style="gap:8px;align-items:center">
@@ -152,16 +152,14 @@
         <div class="muted" id="weekLabel">Semana</div>
         <div class="row" style="gap:8px;align-items:center">
           <label class="muted" for="calUnit">Unidad:</label>
-          <select id="calUnit">
-            <option value="ALL">Todas</option>
-          </select>
+          <select id="calUnit"><option value="ALL">Todas</option></select>
         </div>
       </div>
       <div id="calendarContainer" class="calendar" style="margin-top:12px"></div>
       <div class="footer">© Flexibility by Systemgroup</div>
     </section>
 
-    <!-- EQUIPOS (sin cambios funcionales) -->
+    <!-- EQUIPOS (SIN CAMBIOS) -->
     <section id="viewTeams" style="display:none" class="grid">
       <div class="card">
         <h3 class="title">Crear miembro</h3>
@@ -246,9 +244,7 @@
     $('#btnForgot').onclick = async ()=>{
       const email = $('#authEmail').value.trim();
       if(!email) return setAuthError('Escribe tu correo para enviarte el enlace de recuperación.');
-      const { error } = await sb.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin
-      });
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
       if(error) setAuthError('No se pudo enviar el correo de recuperación: '+error.message);
       else alert('Revisa tu correo para recuperar tu contraseña.');
     };
@@ -311,7 +307,7 @@
       await loadDashboard();
     }
 
-    // ================== DASHBOARD (sin cambios de lógica previa) ==================
+    // ================== DASHBOARD (igual que antes) ==================
     async function loadDashboard(){
       const ws = weekStart(), we = weekEnd();
       $('#weekRange').textContent = `Semana del ${fmtDate(ws)} al ${fmtDate(we)}`;
@@ -337,8 +333,7 @@
       const monthTo   = iso(new Date(m0.getFullYear(), m0.getMonth()+1, 0));
       const { data:rows } = await sb
         .from('attendance').select('location, team_members(unit)')
-        .eq('org_id', state.orgId)
-        .gte('work_date', monthFrom).lte('work_date', monthTo).limit(5000);
+        .eq('org_id', state.orgId).gte('work_date', monthFrom).lte('work_date', monthTo).limit(5000);
 
       const byUnit = {};
       (rows||[]).forEach(r=>{
@@ -370,6 +365,12 @@
     function weekStart(){ return new Date(state.weekStart); }
     function weekEnd(){ const d = weekStart(); d.setDate(d.getDate()+6); return d; }
 
+    // Parser local seguro (evita TZ) para yyyy-mm-dd
+    function parseISOToLocal(isoStr){
+      const [y,m,d] = isoStr.split('-').map(Number);
+      return new Date(y, m-1, d); // local
+    }
+
     async function loadCalendar(){
       const cont = $('#calendarContainer');
       cont.innerHTML = 'Cargando…';
@@ -383,43 +384,43 @@
         err = error; data = rpc;
       }catch(e){ err=e; }
       if(err){
-        const daysAll = rangeDays(ws,we);
         const { data:members, error:em } = await sb.from('team_members')
-          .select('id, full_name, unit')
-          .eq('org_id', state.orgId).eq('active', true).order('full_name');
+          .select('id, full_name, unit').eq('org_id', state.orgId).eq('active', true).order('full_name');
         if(em){ cont.innerHTML = `<div class="error">${em.message}</div>`; return; }
         const { data:atts, error:ea } = await sb.from('attendance')
-          .select('member_id, work_date, location')
-          .eq('org_id', state.orgId)
+          .select('member_id, work_date, location').eq('org_id', state.orgId)
           .gte('work_date', iso(ws)).lte('work_date', iso(we)).limit(2000);
         if(ea){ cont.innerHTML = `<div class="error">${ea.message}</div>`; return; }
 
         const rows=[];
-        for(const m of members){
-          for(const d of daysAll){
-            const hit = atts.find(a=>a.member_id===m.id && a.work_date===iso(d));
-            rows.push({ member_id:m.id, full_name:m.full_name, unit:m.unit||'—', work_date:iso(d), location:hit?.location||null });
+        const isosAll = rangeDays(ws,we).map(d=>iso(d));
+        for(const m of (members||[])){
+          for(const s of isosAll){
+            const hit = (atts||[]).find(a=>a.member_id===m.id && a.work_date===s);
+            rows.push({ member_id:m.id, full_name:m.full_name, unit:m.unit||'—', work_date:s, location:hit?.location||null });
           }
         }
         data = rows;
       }
 
-      // ========== QUITAR DOMINGOS ==========
-      let days = rangeDays(ws,we).filter(d=>d.getDay()!==0); // 0=domingo
-      const isoDays = days.map(d=>iso(d));
+      // ==== QUITAR DOMINGOS (usando parser local) ====
+      const allIso = rangeDays(ws,we).map(d=>iso(d));
+      const isoDays = allIso.filter(s => parseISOToLocal(s).getDay() !== 0); // 0 = Domingo
+      // Set columnas dinámicas
+      cont.style.setProperty('--cols', String(isoDays.length));
 
-      // Construir filas (con unit y nombres)
+      // Construir mapa por miembro
       const by = new Map();
       for(const r of (data||[])){
-        if(!isoDays.includes(r.work_date)) continue; // ignora domingo
+        if(!isoDays.includes(r.work_date)) continue; // ignora domingos
         if(!by.has(r.member_id)){
           by.set(r.member_id,{ id:r.member_id, full_name:r.full_name, unit:r.unit||'—', days:Object.fromEntries(isoDays.map(x=>[x,null])) });
         }
-        if(r.location) by.get(r.member_id).days[r.work_date] = r.location;
+        if(r.location!=null) by.get(r.member_id).days[r.work_date] = r.location;
       }
       const rowsAll = [...by.values()];
 
-      // Popular selector de unidad (únicas)
+      // Popular selector de unidad
       const unitSel = $('#calUnit');
       const units = Array.from(new Set(rowsAll.map(r=>r.unit||'—'))).sort();
       const current = state.calUnit;
@@ -463,8 +464,11 @@
       const next = current === 'home' ? 'office' : current === 'office' ? null : 'home';
 
       if(next === null){
-        const { error } = await sb.from('attendance')
-          .delete().eq('org_id', state.orgId).eq('member_id', id).eq('work_date', d);
+        // NO borramos: dejamos location = null (evita políticas RLS de DELETE)
+        const { error } = await sb
+          .from('attendance')
+          .upsert({ org_id: state.orgId, member_id:id, work_date:d, location: null },
+                  { onConflict: 'org_id,member_id,work_date' });
         if(error){ alert('No se pudo limpiar: '+error.message); return; }
       }else{
         const { error } = await sb.from('attendance').upsert(
@@ -524,7 +528,10 @@
     // ================== UTILS ==================
     function iso(d){ const x=new Date(d); x.setHours(0,0,0,0); return x.toISOString().slice(0,10); }
     function fmtDate(d){ const dd = (d instanceof Date)? d : new Date(d); return dd.toLocaleDateString('es-CO',{weekday:'short', day:'2-digit', month:'2-digit'}).replace('.',''); }
-    function fmtDay(isoStr){ return fmtDate(new Date(isoStr)); }
+    function fmtDay(isoStr){ // usa parser local para evitar TZ
+      const dd = parseISOToLocal(isoStr);
+      return dd.toLocaleDateString('es-CO',{weekday:'short', day:'2-digit', month:'2-digit'}).replace('.','');
+    }
     function rangeDays(from,to){ const out=[]; const d=new Date(from); while(d<=to){ out.push(new Date(d)); d.setDate(d.getDate()+1); } return out; }
     function pill(loc){
       if(loc==='home')   return `<span class="pill home">Casa</span>`;
