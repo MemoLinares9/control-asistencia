@@ -9,8 +9,8 @@
     :root{
       --bg:#0b0f17; --panel:#0f172a; --muted:#111827; --line:#1f2937; --text:#e5e7eb;
       --brand:#7dd3fc; --ok:#86efac; --warn:#fbbf24; --bad:#f87171;
-      --badge:#1e293b; --home-bg:#1e293b; --home-fg:#93c5fd; --office-bg:#0f2f24; --office-fg:#86efac;
       --pill:#0b1220; --pill-b:#1f2435;
+      --home-bg:#1e293b; --home-fg:#93c5fd; --office-bg:#0f2f24; --office-fg:#86efac;
     }
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial}
@@ -56,6 +56,7 @@
     .cell.head{background:#0c1526;font-weight:700}
     .cell.member{text-align:left}
     .cell.day{cursor:pointer}
+
     .member-name{font-weight:700;color:var(--text)}
     .member-unit{opacity:.85;font-size:.9rem;color:var(--text)}
 
@@ -68,6 +69,9 @@
     input,select{background:#0f172a;border:1px solid var(--line);border-radius:10px;padding:10px;color:var(--text)}
     input::placeholder{color:#94a3b8}
     .hint{font-size:.9rem;opacity:.85;color:var(--text)}
+
+    /* Ocultar Org del header (reactívalo quitando esta línea si lo necesitas) */
+    #orgBadge{ display:none !important; }
   </style>
 </head>
 <body>
@@ -97,33 +101,18 @@
           <button class="btn primary" id="btnDoLogin">Entrar</button>
           <button class="btn" id="btnDoSignup">Crear cuenta</button>
         </div>
-
-        <!-- Enlace para recuperación -->
-        <div class="hint" style="margin-top:6px">
-          <a href="#" id="lnkForgot">¿Olvidaste tu contraseña?</a>
-        </div>
-
-        <!-- Panel para definir nueva contraseña (cuando vienes desde el correo) -->
-        <div id="viewReset" class="card" style="display:none;margin-top:10px">
-          <div class="row">
-            <input id="newPass1" type="password" placeholder="Nueva contraseña" style="flex:1 1 220px">
-            <input id="newPass2" type="password" placeholder="Repite la contraseña" style="flex:1 1 220px">
-          </div>
-          <div class="row" style="margin-top:8px">
-            <button class="btn primary" id="btnSetNewPass">Guardar nueva contraseña</button>
-            <button class="btn" id="btnCancelReset" type="button">Cancelar</button>
-          </div>
-          <div class="hint" style="margin-top:8px">Este paso aparece cuando entras desde el correo de recuperación.</div>
-          <div id="resetError" class="error" style="margin-top:8px;display:none"></div>
-        </div>
-
         <div id="authError" class="error" style="margin-top:10px;display:none"></div>
       </div>
     </section>
 
     <!-- ============== DASHBOARD ============== -->
     <section id="viewDashboard" class="grid">
-      <div class="card" style="display:flex;align-items:center;justify-content:space-between">
+      <!-- Card superior con controles de semana -->
+      <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn" id="btnDashPrev">← Semana anterior</button>
+          <button class="btn" id="btnDashNext">Semana siguiente →</button>
+        </div>
         <div class="muted" id="weekRange">Semana</div>
         <div class="muted" id="orgBadge">Org: —</div>
       </div>
@@ -160,11 +149,18 @@
 
     <!-- ============== CALENDARIO ============== -->
     <section id="viewCalendar" style="display:none">
-      <div class="card" style="display:flex;gap:8px;align-items:center;justify-content:space-between">
-        <div>
+      <div class="card" style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+        <div style="display:flex;gap:8px;align-items:center">
           <button class="btn" id="btnPrevWeek">← Semana anterior</button>
           <button class="btn" id="btnNextWeek">Semana siguiente →</button>
         </div>
+
+        <!-- Filtro de unidad -->
+        <div class="row" style="gap:8px;align-items:center">
+          <label class="muted" for="unitFilter">Unidad:</label>
+          <select id="unitFilter" style="min-width:180px"></select>
+        </div>
+
         <div class="muted" id="weekLabel">Semana</div>
       </div>
       <div id="calendarContainer" class="calendar" style="margin-top:12px"></div>
@@ -216,18 +212,17 @@
     const state = {
       user: null,
       orgId: null,
-      weekStart: null, // Monday
+      weekStart: null, // Monday de la semana visible
     };
 
     // Helpers DOM
-    const $ = (sel)=>document.querySelector(sel);
+    const $  = (sel)=>document.querySelector(sel);
+    const $$ = (sel)=>document.querySelectorAll(sel);
     const show = id => {
       ['viewAuth','viewDashboard','viewCalendar','viewTeams'].forEach(v=>{
-        const el = $('#'+v);
-        if(!el) return;
+        const el = $('#'+v); if(!el) return;
         el.style.display = (v===id?'':'none');
       });
-      // marcar pestañas (solo cuando estamos logueados)
       ['tabDash','tabCal','tabTeam'].forEach(t=>$('#'+t).classList.remove('active'));
       if(id==='viewDashboard') $('#tabDash').classList.add('active');
       if(id==='viewCalendar')  $('#tabCal').classList.add('active');
@@ -269,70 +264,30 @@
       show('viewAuth');
     };
 
-    // ======= RECUPERAR / REDEFINIR CONTRASEÑA =======
-    $('#lnkForgot').onclick = async (e)=>{
-      e.preventDefault();
-      const email = $('#authEmail').value.trim();
-      if(!email){ return setAuthError('Escribe tu correo y luego pulsa “¿Olvidaste tu contraseña?”'); }
-      const redirect = location.origin + location.pathname; // vuelve a este index
-      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: redirect });
-      if(error){ setAuthError('No se pudo enviar el correo: ' + error.message); return; }
-      setAuthError('Te enviamos un correo con el enlace para cambiar la contraseña.');
-    };
-
-    sb.auth.onAuthStateChange((event, session)=>{
-      if(event === 'PASSWORD_RECOVERY'){
-        showResetForm(true);
-      }
-    });
-
-    if (location.hash.includes('access_token') || location.hash.includes('type=recovery')) {
-      showResetForm(true);
-    }
-
-    $('#btnSetNewPass').onclick = async ()=>{
-      const p1 = $('#newPass1').value;
-      const p2 = $('#newPass2').value;
-      setResetError('');
-      if(!p1 || !p2) return setResetError('Escribe y confirma tu nueva contraseña.');
-      if(p1 !== p2)  return setResetError('Las contraseñas no coinciden.');
-      const { error } = await sb.auth.updateUser({ password: p1 });
-      if(error){ setResetError('No se pudo actualizar: ' + error.message); return; }
-      showResetForm(false);
-      alert('¡Listo! Tu contraseña fue cambiada. Inicia sesión normalmente.');
-    };
-
-    $('#btnCancelReset').onclick = ()=> showResetForm(false);
-
-    function showResetForm(showFlag){
-      $('#viewReset').style.display = showFlag ? '' : 'none';
-      if(showFlag){ $('#authError').style.display = 'none'; }
-    }
-    function setResetError(msg){
-      const el = $('#resetError');
-      if(!msg){ el.style.display='none'; el.textContent=''; }
-      else { el.textContent = msg; el.style.display='block'; }
-    }
-    // ======= FIN RECUPERACIÓN =======
-
     // ================== NAV ==================
     $('#tabDash').onclick = async ()=>{ show('viewDashboard'); await loadDashboard(); };
-    $('#tabCal').onclick  = async ()=>{ show('viewCalendar');  await loadCalendar();  };
+    $('#tabCal').onclick  = async ()=>{ show('viewCalendar');  await loadUnitOptions(); await loadCalendar();  };
     $('#tabTeam').onclick = async ()=>{ show('viewTeams');     await loadMembers();   };
+
+    // Dashboard: mover semana
+    $('#btnDashPrev').onclick = ()=>{ shiftWeek(-7); loadDashboard(); };
+    $('#btnDashNext').onclick = ()=>{ shiftWeek(+7); loadDashboard(); };
+
+    // Calendario: mover semana y filtro de unidad
+    $('#btnPrevWeek').onclick = ()=>{ shiftWeek(-7); loadCalendar(); };
+    $('#btnNextWeek').onclick = ()=>{ shiftWeek(+7); loadCalendar(); };
+    $('#unitFilter')?.addEventListener('change', loadCalendar);
 
     // ================== INIT ==================
     bootstrap();
     async function bootstrap(){
-      // usuario actual
       const { data:{ user } } = await sb.auth.getUser();
-      if(!user){
-        show('viewAuth');
-        return;
-      }
+      if(!user){ show('viewAuth'); return; }
+
       state.user = user;
       $('#sessionInfo').textContent = 'Sesión: ' + (user.email || user.id);
 
-      // org del perfil
+      // cargar org desde profiles
       const { data:prof } = await sb.from('profiles').select('org_id').eq('id', user.id).maybeSingle();
       state.orgId = prof?.org_id || null;
       $('#orgBadge').textContent = state.orgId ? ('Org: '+state.orgId) : 'Org: —';
@@ -343,7 +298,7 @@
       monday.setDate(today.getDate() - ((today.getDay()+6)%7));
       state.weekStart = monday;
 
-      // vista inicial
+      await loadUnitOptions();
       show('viewDashboard');
       await loadDashboard();
     }
@@ -357,7 +312,7 @@
 
       if(!state.orgId){ setKpis(null); drawUnits([]); return; }
 
-      // KPIs semana por org
+      // KPIs semana
       const { data:attW, error:e1 } = await sb
         .from('attendance')
         .select('location')
@@ -365,17 +320,19 @@
         .lte('work_date', iso(we))
         .eq('org_id', state.orgId)
         .limit(2000);
+
       if(e1){ console.error(e1); setKpis(null); }
       else{
         const total = attW.length || 1;
-        const home = attW.filter(r=>r.location==='home').length;
+        const home  = attW.filter(r=>r.location==='home').length;
         const office= attW.filter(r=>r.location==='office').length;
         setKpis({ home: Math.round(home*100/total), office: Math.round(office*100/total) });
       }
 
-      // Resumen por unidad del mes
+      // Resumen por unidad (mes)
       const monthFrom = iso(new Date(ws.getFullYear(), ws.getMonth(), 1));
       const monthTo   = iso(new Date(ws.getFullYear(), ws.getMonth()+1, 0));
+
       const { data:rows, error:e2 } = await sb
         .from('attendance')
         .select('location, team_members(unit)')
@@ -383,6 +340,7 @@
         .gte('work_date', monthFrom)
         .lte('work_date', monthTo)
         .limit(5000);
+
       if(e2){ console.error(e2); drawUnits([]); }
       else{
         const byUnit = {};
@@ -400,6 +358,7 @@
         drawUnits(data);
       }
     }
+
     function setKpis(x){
       if(!x){ $('#kpiHome').textContent='—'; $('#kpiOffice').textContent='—'; return; }
       $('#kpiHome').textContent = x.home + '%';
@@ -420,35 +379,59 @@
     }
 
     // ================== CALENDARIO ==================
-    $('#btnPrevWeek').onclick = ()=>{ shiftWeek(-7); loadCalendar(); };
-    $('#btnNextWeek').onclick = ()=>{ shiftWeek(+7); loadCalendar(); };
-
     function shiftWeek(delta){ const d = weekStart(); d.setDate(d.getDate()+delta); state.weekStart = d; }
     function weekStart(){ return new Date(state.weekStart); }
     function weekEnd(){ const d = weekStart(); d.setDate(d.getDate()+6); return d; }
+
+    async function loadUnitOptions(){
+      const sel = $('#unitFilter'); if(!sel) return;
+      if(!state.orgId){ sel.innerHTML = `<option value="">Todas</option>`; return; }
+
+      const { data, error } = await sb
+        .from('team_members')
+        .select('unit')
+        .eq('org_id', state.orgId)
+        .eq('active', true);
+
+      if(error){ sel.innerHTML = `<option value="">Todas</option>`; return; }
+
+      const units = Array.from(new Set((data||[]).map(r => (r.unit||'—').trim())))
+        .sort((a,b)=>a.localeCompare(b));
+      sel.innerHTML = `<option value="">Todas</option>` + units.map(u=>`<option value="${u}">${u}</option>`).join('');
+    }
 
     async function loadCalendar(){
       const cont = $('#calendarContainer');
       cont.innerHTML = 'Cargando…';
       const ws = weekStart(), we = weekEnd();
       $('#weekLabel').textContent = `Semana del ${fmtDate(ws)} al ${fmtDate(we)}`;
-
       if(!state.orgId){ cont.innerHTML = '<div class="error">No hay organización</div>'; return; }
+
+      const selectedUnit = ($('#unitFilter')?.value || '').trim(); // '' => todas; '—' => sin unidad
 
       let data=null, err=null;
       try{
         const { data:rpc, error } = await sb.rpc('week_attendance', { p_org: state.orgId, p_from: iso(ws), p_to: iso(we) });
         err = error; data = rpc;
       }catch(e){ err=e; }
+
       if(err){
-        // Fallback local
         const days = rangeDays(ws,we);
-        const { data:members, error:em } = await sb.from('team_members')
+        // miembros (filtrados por unidad si aplica)
+        let reqMembers = sb.from('team_members')
           .select('id, full_name, unit')
           .eq('org_id', state.orgId)
           .eq('active', true)
           .order('full_name');
+
+        if(selectedUnit){
+          if(selectedUnit==='—') reqMembers = reqMembers.is('unit', null);
+          else reqMembers = reqMembers.eq('unit', selectedUnit);
+        }
+
+        const { data:members, error:em } = await reqMembers;
         if(em){ cont.innerHTML = `<div class="error">${em.message}</div>`; return; }
+
         const { data:atts, error:ea } = await sb.from('attendance')
           .select('member_id, work_date, location')
           .eq('org_id', state.orgId)
@@ -467,10 +450,20 @@
       }
 
       const days = rangeDays(ws,we).map(d=>iso(d));
+
+      // Si usamos la RPC, aplicamos filtro de unidad acá también:
+      const selectedUnit2 = ($('#unitFilter')?.value || '').trim();
+      const filtered = !selectedUnit2 ? data : data.filter(r=>{
+        const u = (r.unit || r.team_members?.unit || '—'); // por si viene con join
+        if(selectedUnit2==='—') return !u || u==='—' || u===null;
+        return u === selectedUnit2;
+      });
+
       const by = new Map();
-      for(const r of data){
+      for(const r of filtered){
+        const unitVal = r.unit || r.team_members?.unit || '—';
         if(!by.has(r.member_id)){
-          by.set(r.member_id,{ id:r.member_id, full_name:r.full_name, unit:r.unit||'—', days:Object.fromEntries(days.map(x=>[x,null])) });
+          by.set(r.member_id,{ id:r.member_id, full_name:r.full_name, unit:unitVal, days:Object.fromEntries(days.map(x=>[x,null])) });
         }
         if(r.location) by.get(r.member_id).days[r.work_date] = r.location;
       }
@@ -487,7 +480,7 @@
         <div class="cal-row">
           <div class="cell member">
             <div class="member-name">${r.full_name}</div>
-            <div class="member-unit">${r.unit}</div>
+            <div class="member-unit">${r.unit || '—'}</div>
           </div>
           ${days.map(d=>`
             <button class="cell day" data-member-id="${r.id}" data-date="${d}">
@@ -530,7 +523,10 @@
       if(!state.orgId){ $('#membersBody').innerHTML = `<tr class="tr"><td class="td" colspan="5">—</td></tr>`; return; }
       const q = $('#inFilter').value.trim();
       let req = sb.from('team_members').select('id, full_name, unit, email, active').eq('org_id', state.orgId).order('full_name');
-      if(q) req = req.ilike('full_name', `%${q}%`);
+      if(q){
+        // Buscar por nombre o por unidad
+        req = req.or(`full_name.ilike.%${q}%,unit.ilike.%${q}%`);
+      }
       const { data, error } = await req;
       const body = $('#membersBody'); body.innerHTML='';
       if(error){ body.innerHTML = `<tr class="tr"><td class="td" colspan="5">${error.message}</td></tr>`; return; }
@@ -571,6 +567,19 @@
       if(loc==='office') return `<span class="pill office">Oficina</span>`;
       return `<span class="pill muted">—</span>`;
     }
+
+    // Mensaje de bienvenida sutil (desaparece suave)
+    document.addEventListener('DOMContentLoaded', () => {
+      const msg = document.createElement('div');
+      msg.textContent = "Bienvenido al sistema de control de asistencia";
+      msg.style.textAlign = "center";
+      msg.style.margin = "10px 0";
+      msg.style.fontWeight = "bold";
+      msg.style.transition = "opacity .6s ease";
+      document.body.prepend(msg);
+      setTimeout(()=>{ msg.style.opacity='0'; }, 2400);
+      setTimeout(()=>{ msg.remove(); }, 3200);
+    });
   </script>
 </body>
 </html>
