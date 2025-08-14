@@ -9,8 +9,7 @@
     :root{
       --bg:#0b0f17; --panel:#0f172a; --muted:#111827; --line:#1f2937; --text:#e5e7eb;
       --brand:#7dd3fc; --ok:#86efac; --warn:#fbbf24; --bad:#f87171;
-      --pill:#0b1220; --pill-b:#1f2435;
-      --home-bg:#1e293b; --home-fg:#93c5fd; --office-bg:#0f2f24; --office-fg:#86efac; --none-bg:#20232e;
+      --pill:#0b1220; --pill-b:#1f2435; --home:#3b82f6; --office:#22c55e;
     }
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial}
@@ -19,7 +18,7 @@
 
     /* NAV */
     .top{display:flex;align-items:center;gap:8px;margin-bottom:16px}
-    .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;color:var(--text)}
+    .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px;color:var(--text)}
     .dot{width:10px;height:10px;border-radius:3px;background:linear-gradient(135deg,#22d3ee,#60a5fa)}
     .tabs{display:flex;gap:8px;margin-left:16px}
     .tab{background:var(--panel);border:1px solid var(--line);padding:8px 12px;border-radius:10px;cursor:pointer;color:var(--text)}
@@ -29,7 +28,6 @@
     .btn:hover{filter:brightness(1.1)}
     .btn.primary{background:#1e3a8a;border-color:#1e3a8a}
 
-    /* CARDS / TABLES */
     .grid{display:grid;gap:12px}
     .grid.cols-2{grid-template-columns:1fr 1fr}
     .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
@@ -42,43 +40,37 @@
     .td,.th{padding:10px 12px;color:var(--text)}
     .td:first-child,.th:first-child{border-top-left-radius:10px;border-bottom-left-radius:10px}
     .td:last-child,.th:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px}
-
-    /* (CAMBIO) centrar “Resumen por unidad (mes)” excepto la primera columna */
-    #tblUnits .th, #tblUnits .td{ text-align:center; }
-    #tblUnits .td:first-child, #tblUnits .th:first-child{ text-align:left; }
+    .center{ text-align:center } .right{ text-align:right }
 
     /* Pills */
     .pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:.85rem;background:var(--pill);border:1px solid var(--pill-b);color:var(--text)}
-    .pill.home{background:var(--home-bg);color:var(--home-fg);border-color:#1f3a5f}
-    .pill.office{background:var(--office-bg);color:var(--office-fg);border-color:#1b4d3a}
-    .pill.none{background:var(--none-bg);color:#cbd5e1;border-color:#2b3247}
-    .pill.muted{opacity:.7}
+    .pill.home{background:#0f1d3c;color:#cfe2ff;border-color:#274b8a}
+    .pill.office{background:#0f2f24;color:#bff7cf;border-color:#1b4d3a}
+    .pill.na{opacity:.7}
 
     /* Calendar */
     .calendar{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px}
-    .cal-head,.cal-row{display:grid;grid-template-columns:260px repeat(6,1fr);gap:8px;align-items:center} /* (CAMBIO) 6 días (lun–sáb) */
+    .cal-head,.cal-row{display:grid;grid-template-columns:260px repeat(6,1fr);gap:8px;align-items:center}
     .cell{background:var(--muted);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;color:var(--text)}
     .cell.head{background:#0c1526;font-weight:700}
     .cell.member{text-align:left}
-    .cell.day{cursor:pointer}
+    .cell.day{cursor:pointer;display:flex;align-items:center;justify-content:center;min-height:38px}
     .member-name{font-weight:700;color:var(--text)}
     .member-unit{opacity:.85;font-size:.9rem;color:var(--text)}
-
+    .row{display:flex;gap:8px;flex-wrap:wrap}
+    input,select{background:#0f172a;border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--text)}
+    input::placeholder{color:#94a3b8}
     .footer{margin-top:26px;text-align:center;opacity:.6;color:var(--text)}
     .error{color:var(--bad)}
 
-    /* Login panel */
+    /* Login */
     .auth{max-width:480px;margin:80px auto;padding:16px}
-    .row{display:flex;gap:8px;flex-wrap:wrap}
-    input,select{background:#0f172a;border:1px solid var(--line);border-radius:10px;padding:10px;color:var(--text)}
-    input::placeholder{color:#94a3b8}
     .hint{font-size:.9rem;opacity:.85;color:var(--text)}
   </style>
 </head>
 <body>
   <div class="wrap">
-
-    <!-- ============== HEADER ============== -->
+    <!-- HEADER -->
     <div class="top">
       <div class="logo"><span class="dot"></span> Flexibility by Systemgroup</div>
       <div class="tabs">
@@ -90,7 +82,7 @@
       <button class="btn" id="btnLogout">Salir</button>
     </div>
 
-    <!-- ============== LOGIN (email/contraseña) ============== -->
+    <!-- AUTH -->
     <section id="viewAuth" style="display:none">
       <div class="card auth">
         <h3 class="title">Inicia sesión</h3>
@@ -103,24 +95,22 @@
           <button class="btn" id="btnDoSignup">Crear cuenta</button>
           <button class="btn" id="btnForgot">Olvidé mi contraseña</button>
         </div>
-        <div class="hint" style="margin-top:10px">
-          Si no quieres confirmar por correo, desactiva <em>“Confirm email”</em> en Supabase &rarr; Auth &rarr; Providers &rarr; Email.
-        </div>
+        <div class="hint" style="margin-top:10px">Si no quieres confirmar por correo, desactiva “Confirm email” en Supabase &rarr; Auth &rarr; Providers &rarr; Email.</div>
         <div id="authError" class="error" style="margin-top:10px;display:none"></div>
       </div>
     </section>
 
-    <!-- ============== DASHBOARD ============== -->
+    <!-- DASHBOARD -->
     <section id="viewDashboard" class="grid">
-      <div class="card" style="display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap">
-        <div class="row" style="gap:8px">
-          <button class="btn" id="dashPrev">← Semana anterior</button>
-          <button class="btn" id="dashNext">Semana siguiente →</button>
+      <div class="card" style="display:flex;align-items:center;justify-content:space-between">
+        <div class="row">
+          <button class="btn" id="btnPrevWeekDash">← Semana anterior</button>
+          <button class="btn" id="btnNextWeekDash">Semana siguiente →</button>
         </div>
         <div class="muted" id="weekRange">Semana</div>
-        <div class="row" style="gap:8px;align-items:center">
-          <div class="muted">Mes:</div>
-          <input id="monthPick" type="month" />
+        <div class="row" style="align-items:center;gap:10px">
+          <span class="muted">Mes:</span>
+          <input type="month" id="monthPicker" />
         </div>
       </div>
 
@@ -144,37 +134,34 @@
           <thead>
             <tr class="th tr">
               <th class="th">Unidad</th>
-              <th class="th">% Casa</th>
-              <th class="th">% Oficina</th>
-              <th class="th">Registros</th>
+              <th class="th center">% Casa</th>
+              <th class="th center">% Oficina</th>
+              <th class="th center">Registros</th>
             </tr>
           </thead>
           <tbody id="unitsBody"></tbody>
         </table>
       </div>
-      <div class="footer">© Flexibility by Systemgroup</div>
     </section>
 
-    <!-- ============== CALENDARIO ============== -->
+    <!-- CALENDARIO -->
     <section id="viewCalendar" style="display:none">
-      <div class="card" style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+      <div class="card" style="display:flex;gap:8px;align-items:center;justify-content:space-between">
         <div>
           <button class="btn" id="btnPrevWeek">← Semana anterior</button>
           <button class="btn" id="btnNextWeek">Semana siguiente →</button>
         </div>
         <div class="muted" id="weekLabel">Semana</div>
-        <div class="row" style="gap:8px;align-items:center">
-          <div class="muted">Unidad:</div>
-          <select id="unitFilter">
-            <option value="__all__">(todas)</option>
-          </select>
+        <div class="row" style="align-items:center">
+          <span class="muted">Unidad:&nbsp;</span>
+          <select id="unitFilter"><option value="">(todas)</option></select>
         </div>
       </div>
       <div id="calendarContainer" class="calendar" style="margin-top:12px"></div>
       <div class="footer">© Flexibility by Systemgroup</div>
     </section>
 
-    <!-- ============== EQUIPOS ============== -->
+    <!-- EQUIPOS -->
     <section id="viewTeams" style="display:none" class="grid">
       <div class="card">
         <h3 class="title">Crear miembro</h3>
@@ -210,87 +197,71 @@
   </div>
 
   <script>
-    // ================== CONFIG SUPABASE ==================
+    // ================== SUPABASE ==================
     const SUPABASE_URL  = "https://tkrlcuqbujzwqhweblto.supabase.co";
     const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRrcmxjdXFidWp6d3Fod2VibHRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5MTUzODIsImV4cCI6MjA3MDQ5MTM4Mn0.PjwSfBreunYD1RyiOUeCzJKIug7Wc7YSaqZFzMJXCxg";
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-    // ================== STATE ==================
-    const state = {
-      user: null,
-      orgId: null,
-      weekStart: null, // Monday
-      monthPick: null,
-      unitFilter: "__all__",
+    // ================== STATE / HELPERS ==================
+    const state = { user:null, orgId:null, weekStart:null, monthRef:null };
+    const $ = s => document.querySelector(s);
+    const iso = d => { const x=new Date(d); x.setHours(0,0,0,0); return x.toISOString().slice(0,10); };
+    const fmtDate = d => {
+      const dd = (d instanceof Date)? d : new Date(d);
+      return dd.toLocaleDateString('es-CO',{weekday:'short', day:'2-digit', month:'2-digit'}).replace('.','');
+    };
+    const fmtMonth = (y,m) => new Date(y,m,1).toLocaleDateString('es-CO',{month:'long', year:'numeric'});
+    const mondayOf = (d) => { const x=new Date(d); const k=(x.getDay()+6)%7; x.setDate(x.getDate()-k); x.setHours(0,0,0,0); return x; };
+    const weekStart = () => new Date(state.weekStart);
+    // **CAMBIO**: semana termina en SÁBADO (Mon + 5)
+    const weekEnd   = () => { const d=weekStart(); d.setDate(d.getDate()+5); return d; };
+    const rangeMonSat = (from) => { const out=[]; const d=new Date(from); for(let i=0;i<6;i++){ out.push(new Date(d)); d.setDate(d.getDate()+1);} return out; };
+
+    const pillHTML = (loc) => {
+      if(!loc || loc==='na') return `<span class="pill na">—</span>`;
+      if(loc==='home') return `<span class="pill home">Casa</span>`;
+      if(loc==='office') return `<span class="pill office">Oficina</span>`;
+      return `<span class="pill na">—</span>`;
     };
 
-    // Helpers DOM
-    const $ = (sel)=>document.querySelector(sel);
-    const show = id => {
-      ['viewAuth','viewDashboard','viewCalendar','viewTeams'].forEach(v=>{
-        const el = $('#'+v);
-        if(!el) return;
-        el.style.display = (v===id?'':'none');
-      });
+    // ================== AUTH ==================
+    $('#btnDoLogin').onclick = async ()=>{
+      const email=$('#authEmail').value.trim(), pass=$('#authPass').value;
+      setAuthError('');
+      if(!email || !pass) return setAuthError('Escribe correo y contraseña.');
+      const { error } = await sb.auth.signInWithPassword({ email, password:pass });
+      if(error) return setAuthError(error.message);
+      await bootstrap();
+    };
+    $('#btnDoSignup').onclick = async ()=>{
+      const email=$('#authEmail').value.trim(), pass=$('#authPass').value;
+      setAuthError('');
+      if(!email || !pass) return setAuthError('Escribe correo y contraseña.');
+      const { error } = await sb.auth.signUp({ email, password:pass });
+      if(error) return setAuthError(error.message);
+      alert('Cuenta creada. Revisa tu correo si tu proyecto requiere confirmación.');
+      await bootstrap();
+    };
+    $('#btnForgot').onclick = async ()=>{
+      const email = prompt('Correo para restablecer contraseña:');
+      if(!email) return;
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+      if(error) alert(error.message); else alert('Te enviamos un correo para restablecer.');
+    };
+    function setAuthError(m){ const b=$('#authError'); if(!m){b.style.display='none'; b.textContent='';} else{b.textContent=m; b.style.display='block';} }
+    $('#btnLogout').onclick = async()=>{ await sb.auth.signOut(); state.user=null; $('#sessionInfo').textContent='Sesión: —'; show('viewAuth'); };
+
+    // ================== NAV ==================
+    const show = id=>{
+      ['viewAuth','viewDashboard','viewCalendar','viewTeams'].forEach(v=>{ const el=$('#'+v); if(el) el.style.display=(v===id?'':'none'); });
       ['tabDash','tabCal','tabTeam'].forEach(t=>$('#'+t).classList.remove('active'));
       if(id==='viewDashboard') $('#tabDash').classList.add('active');
       if(id==='viewCalendar')  $('#tabCal').classList.add('active');
       if(id==='viewTeams')     $('#tabTeam').classList.add('active');
     };
-
-    // ================== AUTH ==================
-    $('#btnDoLogin').onclick = async ()=>{
-      const email = $('#authEmail').value.trim();
-      const pass  = $('#authPass').value;
-      setAuthError('');
-      if(!email || !pass) return setAuthError('Escribe correo y contraseña.');
-      const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-      if(error){ setAuthError('No se pudo iniciar sesión: '+error.message); return; }
-      await bootstrap();
-    };
-    $('#btnDoSignup').onclick = async ()=>{
-      const email = $('#authEmail').value.trim();
-      const pass  = $('#authPass').value;
-      setAuthError('');
-      if(!email || !pass) return setAuthError('Escribe correo y contraseña.');
-      const { error } = await sb.auth.signUp({ email, password: pass });
-      if(error){ setAuthError('No se pudo crear la cuenta: '+error.message); return; }
-      alert('Cuenta creada. Si tu proyecto requiere confirmación, revisa tu correo.');
-      await bootstrap();
-    };
-    $('#btnForgot').onclick = async ()=>{
-      const email = $('#authEmail').value.trim();
-      if(!email) return setAuthError('Escribe tu correo para enviar el enlace.');
-      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
-      if(error) setAuthError('No se pudo enviar enlace: '+error.message);
-      else alert('Te enviamos un enlace para restablecer tu contraseña.');
-    };
-    function setAuthError(msg){
-      const box = $('#authError');
-      if(!msg){ box.style.display='none'; box.textContent=''; }
-      else { box.textContent = msg; box.style.display='block'; }
-    }
-    $('#btnLogout').onclick = async()=>{
-      await sb.auth.signOut();
-      state.user = null;
-      $('#sessionInfo').textContent = 'Sesión: —';
-      show('viewAuth');
-    };
-
-    // ================== NAV ==================
     $('#tabDash').onclick = async ()=>{ show('viewDashboard'); await loadDashboard(); };
     $('#tabCal').onclick  = async ()=>{ show('viewCalendar');  await loadCalendar();  };
     $('#tabTeam').onclick = async ()=>{ show('viewTeams');     await loadMembers();   };
-
-    // Dashboard week nav
-    $('#dashPrev').onclick = ()=>{ shiftWeek(-7); loadDashboard(); };
-    $('#dashNext').onclick = ()=>{ shiftWeek(+7); loadDashboard(); };
-    $('#monthPick').addEventListener('change', ()=>{ state.monthPick = $('#monthPick').value; loadDashboard(); });
-
-    // Calendar week nav & unit filter
-    $('#btnPrevWeek').onclick = ()=>{ shiftWeek(-7); loadCalendar(); };
-    $('#btnNextWeek').onclick = ()=>{ shiftWeek(+7); loadCalendar(); };
-    $('#unitFilter').addEventListener('change', ()=>{ state.unitFilter = $('#unitFilter').value; loadCalendar(); });
 
     // ================== INIT ==================
     bootstrap();
@@ -300,17 +271,22 @@
       state.user = user;
       $('#sessionInfo').textContent = 'Sesión: ' + (user.email || user.id);
 
+      // perfil -> org
       const { data:prof } = await sb.from('profiles').select('org_id').eq('id', user.id).maybeSingle();
       state.orgId = prof?.org_id || null;
 
-      const today = new Date();
-      const monday = new Date(today);
-      monday.setDate(today.getDate() - ((today.getDay()+6)%7));
-      state.weekStart = monday;
+      // semana de referencia: lunes de hoy
+      state.weekStart = mondayOf(new Date());
+      state.monthRef  = new Date(state.weekStart.getFullYear(), state.weekStart.getMonth(), 1);
 
-      const ym = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
-      $('#monthPick').value = ym;
-      state.monthPick = ym;
+      // month input
+      const y = state.monthRef.getFullYear(), m = (state.monthRef.getMonth()+1+'').padStart(2,'0');
+      $('#monthPicker').value = `${y}-${m}`;
+      $('#monthPicker').onchange = ()=> loadDashboard();
+
+      // botones semana en dashboard
+      $('#btnPrevWeekDash').onclick = ()=>{ state.weekStart.setDate(state.weekStart.getDate()-7); loadDashboard(); };
+      $('#btnNextWeekDash').onclick = ()=>{ state.weekStart.setDate(state.weekStart.getDate()+7); loadDashboard(); };
 
       show('viewDashboard');
       await loadDashboard();
@@ -318,18 +294,15 @@
 
     // ================== DASHBOARD ==================
     async function loadDashboard(){
-      const ws = weekStart(), we = weekEnd();
+      const ws = weekStart(), we = weekEnd(); // **Mon..Sat**
       $('#weekRange').textContent = `Semana del ${fmtDate(ws)} al ${fmtDate(we)}`;
-
-      // Mes seleccionado
-      const [y, m] = (state.monthPick || `${ws.getFullYear()}-${String(ws.getMonth()+1).padStart(2,'0')}`).split('-').map(Number);
-      const monthFrom = iso(new Date(y, m-1, 1));
-      const monthTo   = iso(new Date(y, m, 0));
-      $('#monthLabel').textContent = new Date(y, m-1, 1).toLocaleDateString('es-CO',{month:'long', year:'numeric'});
+      const mp = $('#monthPicker').value || `${ws.getFullYear()}-${(ws.getMonth()+1+'').padStart(2,'0')}`;
+      const [yy,mm] = mp.split('-').map(Number);
+      $('#monthLabel').textContent = fmtMonth(yy,mm-1);
 
       if(!state.orgId){ setKpis(null); drawUnits([]); return; }
 
-      // KPIs semana
+      // KPIs Mon..Sat
       const { data:attW, error:e1 } = await sb
         .from('attendance')
         .select('location')
@@ -339,13 +312,16 @@
         .limit(5000);
       if(e1){ console.error(e1); setKpis(null); }
       else{
-        const total = attW.length || 1;
-        const home = attW.filter(r=>r.location==='home').length;
-        const office= attW.filter(r=>r.location==='office').length;
+        const rows = attW || [];
+        const total = rows.length || 1;
+        const home  = rows.filter(r=>r.location==='home').length;
+        const office= rows.filter(r=>r.location==='office').length;
         setKpis({ home: Math.round(home*100/total), office: Math.round(office*100/total) });
       }
 
-      // Resumen por unidad del mes
+      // Resumen por unidad del mes seleccionado
+      const monthFrom = iso(new Date(yy, mm-1, 1));
+      const monthTo   = iso(new Date(yy, mm, 0));
       const { data:rows, error:e2 } = await sb
         .from('attendance')
         .select('location, team_members(unit)')
@@ -356,7 +332,7 @@
       if(e2){ console.error(e2); drawUnits([]); }
       else{
         const byUnit = {};
-        for(const r of rows){
+        for(const r of rows||[]){
           const u = r.team_members?.unit || '—';
           if(!byUnit[u]) byUnit[u] = { unit:u, home:0, office:0, total:0 };
           if(r.location==='home') byUnit[u].home++;
@@ -364,17 +340,13 @@
           byUnit[u].total++;
         }
         const data = Object.values(byUnit).map(x=>{
-          const total = x.total || 1;
-          return { unit:x.unit, pHome:Math.round(x.home*100/total), pOffice:Math.round(x.office*100/total), total:x.total };
+          const t = x.total || 1;
+          return { unit:x.unit, pHome:Math.round(x.home*100/t), pOffice:Math.round(x.office*100/t), total:x.total };
         }).sort((a,b)=>a.unit.localeCompare(b.unit));
         drawUnits(data);
       }
     }
-    function setKpis(x){
-      if(!x){ $('#kpiHome').textContent='—'; $('#kpiOffice').textContent='—'; return; }
-      $('#kpiHome').textContent = x.home + '%';
-      $('#kpiOffice').textContent = x.office + '%';
-    }
+    function setKpis(x){ $('#kpiHome').textContent = x? x.home+'%' : '—'; $('#kpiOffice').textContent = x? x.office+'%' : '—'; }
     function drawUnits(list){
       const tbody = $('#unitsBody'); tbody.innerHTML='';
       if(!list.length){ tbody.innerHTML = `<tr class="tr"><td class="td" colspan="4">—</td></tr>`; return; }
@@ -382,91 +354,72 @@
         const tr = document.createElement('tr'); tr.className='tr';
         tr.innerHTML = `
           <td class="td">${r.unit}</td>
-          <td class="td">${r.pHome}%</td>
-          <td class="td">${r.pOffice}%</td>
-          <td class="td">${r.total}</td>`;
+          <td class="td center">${r.pHome}%</td>
+          <td class="td center">${r.pOffice}%</td>
+          <td class="td center">${r.total}</td>`;
         tbody.appendChild(tr);
       }
     }
 
-    // ================== CALENDARIO ==================
+    // ================== CALENDARIO (Mon..Sat) ==================
+    $('#btnPrevWeek').onclick = ()=>{ state.weekStart.setDate(state.weekStart.getDate()-7); loadCalendar(); };
+    $('#btnNextWeek').onclick = ()=>{ state.weekStart.setDate(state.weekStart.getDate()+7); loadCalendar(); };
+    $('#unitFilter').onchange = ()=> loadCalendar();
+
     async function loadCalendar(){
       const cont = $('#calendarContainer');
       cont.innerHTML = 'Cargando…';
-
-      if(!state.orgId){ cont.innerHTML = '<div class="error">No hay organización</div>'; return; }
-
-      const ws = weekStart(), we = weekEnd();
+      const ws = weekStart(), we = weekEnd(); // **Mon..Sat**
       $('#weekLabel').textContent = `Semana del ${fmtDate(ws)} al ${fmtDate(we)}`;
+      if(!state.orgId){ cont.innerHTML = `<div class="error">No hay organización</div>`; return; }
 
-      // miembros activos (posible filtro unidad)
-      let memQ = sb.from('team_members').select('id, full_name, unit').eq('org_id', state.orgId).eq('active', true);
-      if(state.unitFilter !== '__all__') memQ = memQ.eq('unit', state.unitFilter);
-      const { data:members, error:em } = await memQ.order('full_name');
+      // miembros activos
+      let q = sb.from('team_members')
+                .select('id, full_name, unit')
+                .eq('org_id', state.orgId)
+                .eq('active', true)
+                .order('full_name');
+      const unitSel = $('#unitFilter').value;
+      if(unitSel) q = q.eq('unit', unitSel);
+      const { data:members, error:em } = await q;
       if(em){ cont.innerHTML = `<div class="error">${em.message}</div>`; return; }
 
-      // asistencia semana (lun–sáb)
-      const days = rangeDays(ws,we); // (CAMBIO) esta función ya no incluye domingos
+      // poblar filtro de unidades (una vez por carga general)
+      if(!unitSel){
+        const { data:unitsRaw } = await sb.from('team_members').select('unit').eq('org_id', state.orgId).eq('active', true);
+        const opts = [...new Set((unitsRaw||[]).map(r=>r.unit).filter(Boolean))].sort();
+        const sel = $('#unitFilter'); const cur = sel.value;
+        sel.innerHTML = `<option value="">(todas)</option>` + opts.map(u=>`<option>${u}</option>`).join('');
+        sel.value = cur || '';
+      }
+
+      // asistencia Mon..Sat
       const { data:atts, error:ea } = await sb.from('attendance')
         .select('member_id, work_date, location')
         .eq('org_id', state.orgId)
         .gte('work_date', iso(ws)).lte('work_date', iso(we))
-        .in('work_date', days.map(d=>iso(d))) /* asegura que solo traemos lun–sáb */
         .limit(10000);
       if(ea){ cont.innerHTML = `<div class="error">${ea.message}</div>`; return; }
 
-      const rows=[];
+      const days = rangeMonSat(ws).map(d=>iso(d)); // **6 días**
+      const byId = new Map();
       for(const m of members){
-        for(const d of days){
-          const hit = atts.find(a=>a.member_id===m.id && a.work_date===iso(d));
-          rows.push({ member_id:m.id, full_name:m.full_name, unit:m.unit||'—', work_date:iso(d), location:hit?.location||null });
+        byId.set(m.id, { id:m.id, full_name:m.full_name, unit:m.unit||'—', days:Object.fromEntries(days.map(x=>[x,'na'])) });
+      }
+      for(const a of atts||[]){
+        if(byId.has(a.member_id) && days.includes(a.work_date)){
+          byId.get(a.member_id).days[a.work_date] = a.location || 'na';
         }
       }
 
-      // poblar filtro de unidades
-      const unitSel = $('#unitFilter');
-      const units = Array.from(new Set(members.map(m=>m.unit||'—'))).sort();
-      unitSel.innerHTML = `<option value="__all__">(todas)</option>` + units.map(u=>`<option ${state.unitFilter===u?'selected':''} value="${u}">${u}</option>`).join('');
-
-      const dayIsos = days.map(d=>iso(d));
-      const by = new Map();
-      for(const r of rows){
-        if(!by.has(r.member_id)){
-          by.set(r.member_id,{ id:r.member_id, full_name:r.full_name, unit:r.unit||'—', days:Object.fromEntries(dayIsos.map(x=>[x,null])) });
-        }
-        if(r.location) by.get(r.member_id).days[r.work_date] = r.location;
-      }
-      cont.innerHTML = renderCalendarGrid([...by.values()], dayIsos);
+      cont.innerHTML = renderCalendar([...byId.values()], days);
     }
 
-    // Toggle (home -> office -> none -> home …)
-    document.addEventListener('click', async (e)=>{
-      const btn = e.target.closest('.cell.day'); if(!btn) return;
-      if(!state.orgId) return;
-      const id = btn.dataset.memberId, d = btn.dataset.date;
-      const current = (btn.dataset.loc || '').trim(); // almacenamos en data-loc
-      const next = current==='home' ? 'office' : current==='office' ? null : 'home';
-
-      if(next===null){
-        // limpiar: borrar fila si existe
-        const { error } = await sb.from('attendance')
-          .delete()
-          .eq('org_id', state.orgId).eq('member_id', id).eq('work_date', d);
-        if(error){ alert('No se pudo limpiar: '+error.message); return; }
-      }else{
-        const { error } = await sb.from('attendance').upsert({
-          org_id: state.orgId, member_id:id, work_date:d, location: next
-        }, { onConflict: 'org_id,member_id,work_date' });
-        if(error){ alert('No se pudo marcar: '+error.message); return; }
-      }
-      loadCalendar();
-    });
-
-    function renderCalendarGrid(rows, days){
+    function renderCalendar(rows, days){
       const header = `
         <div class="cal-head">
           <div class="cell head">Miembro</div>
-          ${days.map(d=>`<div class="cell head">${fmtDay(d)}</div>`).join('')}
+          ${days.map(d=>`<div class="cell head">${fmtDate(d)}</div>`).join('')}
         </div>`;
       const body = rows.map(r=>`
         <div class="cal-row">
@@ -475,15 +428,29 @@
             <div class="member-unit">${r.unit}</div>
           </div>
           ${days.map(d=>{
-            const loc = r.days[d];
-            return `
-              <button class="cell day" data-member-id="${r.id}" data-date="${d}" data-loc="${loc||''}">
-                ${pill(loc)}
-              </button>`;
+            const loc = r.days[d] || 'na';
+            return `<button class="cell day" data-member-id="${r.id}" data-date="${d}" data-loc="${loc}">${pillHTML(loc)}</button>`;
           }).join('')}
         </div>`).join('');
       return header + body;
     }
+
+    // toggle: na -> home -> office -> na
+    document.addEventListener('click', async (e)=>{
+      const btn = e.target.closest('.cell.day'); if(!btn) return;
+      if(!state.orgId) return;
+      const id = btn.dataset.memberId, d = btn.dataset.date;
+      const order = ['na','home','office'];
+      const cur = btn.dataset.loc || 'na';
+      const next = order[(order.indexOf(cur)+1)%order.length];
+
+      const payload = { org_id: state.orgId, member_id:id, work_date:d, location: next };
+      const { error } = await sb.from('attendance')
+        .upsert(payload, { onConflict: 'org_id,member_id,work_date' });
+      if(error){ alert('No se pudo marcar: '+error.message); return; }
+      btn.dataset.loc = next;
+      btn.innerHTML = pillHTML(next);
+    });
 
     // ================== EQUIPOS ==================
     $('#btnCreate').onclick = async ()=>{
@@ -503,7 +470,8 @@
     async function loadMembers(){
       if(!state.orgId){ $('#membersBody').innerHTML = `<tr class="tr"><td class="td" colspan="5">—</td></tr>`; return; }
       const q = $('#inFilter').value.trim();
-      let req = sb.from('team_members').select('id, full_name, unit, email, active').eq('org_id', state.orgId).order('full_name');
+      let req = sb.from('team_members').select('id, full_name, unit, email, active')
+        .eq('org_id', state.orgId).order('full_name');
       if(q) req = req.ilike('full_name', `%${q}%`);
       const { data, error } = await req;
       const body = $('#membersBody'); body.innerHTML='';
@@ -522,7 +490,6 @@
         body.appendChild(tr);
       }
     }
-
     document.addEventListener('click', async (e)=>{
       const b = e.target.closest('button[data-act="toggle"]'); if(!b) return;
       const id = b.dataset.id;
@@ -531,33 +498,6 @@
       if(error) return alert('No se pudo actualizar: '+error.message);
       loadMembers();
     });
-
-    // ================== UTILS ==================
-    function iso(d){ const x=new Date(d); x.setHours(0,0,0,0); return x.toISOString().slice(0,10); }
-    function fmtDate(d){
-      const dd = (d instanceof Date)? d : new Date(d);
-      return dd.toLocaleDateString('es-CO',{weekday:'short', day:'2-digit', month:'2-digit'}).replace('.','');
-    }
-    function fmtDay(isoStr){ return fmtDate(new Date(isoStr)); }
-    function shiftWeek(delta){ const d = weekStart(); d.setDate(d.getDate()+delta); state.weekStart = d; }
-    function weekStart(){ return new Date(state.weekStart); }
-    function weekEnd(){ const d = weekStart(); d.setDate(d.getDate()+6); return d; }
-
-    // (CAMBIO) generar días lunes–sábado (omitir domingo)
-    function rangeDays(from,to){
-      const out=[]; const d=new Date(from);
-      while(d<=to){
-        if(d.getDay()!==0) out.push(new Date(d)); // 0 = domingo
-        d.setDate(d.getDate()+1);
-      }
-      return out;
-    }
-
-    function pill(loc){
-      if(loc==='home')   return `<span class="pill home">Casa</span>`;
-      if(loc==='office') return `<span class="pill office">Oficina</span>`;
-      return `<span class="pill none">—</span>`;
-    }
   </script>
 </body>
 </html>
