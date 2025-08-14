@@ -49,7 +49,6 @@
 
     /* Calendar */
     .calendar{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px}
-    /* 6 columnas (lun-sáb) */
     .cal-head,.cal-row{display:grid;grid-template-columns:260px repeat(6,1fr);gap:8px;align-items:center}
     .cell{background:var(--muted);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;color:var(--text)}
     .cell.head{background:#0c1526;font-weight:700}
@@ -94,7 +93,7 @@
           <button class="btn" id="btnDoSignup">Crear cuenta</button>
           <button class="btn" id="btnForgot">Olvidé mi contraseña</button>
         </div>
-        <div class="hint" style="margin-top:10px">Si no quieres confirmar por correo, desactiva “Confirm email” en Supabase &rarr; Auth &rarr; Providers &rarr; Email.</div>
+        <div class="hint" style="margin-top:10px">Si no quieres confirmar por correo, desactiva “Confirm email” en Supabase → Auth → Providers → Email.</div>
         <div id="authError" class="error" style="margin-top:10px;display:none"></div>
       </div>
     </section>
@@ -205,10 +204,9 @@
     const state = { user:null, orgId:null, weekStart:null, monthRef:null };
     const $ = s => document.querySelector(s);
 
-    // >>>>> FECHAS EN LOCAL (evita toISOString/UTC) <<<<<
+    // Fechas en local
     function iso(d){
       const x = new Date(d);
-      // usar el mediodía local para esquivar DST y luego formatear yyyy-mm-dd
       x.setHours(12,0,0,0);
       const y = x.getFullYear();
       const m = String(x.getMonth()+1).padStart(2,'0');
@@ -216,14 +214,13 @@
       return `${y}-${m}-${da}`;
     }
     const fmtDate = d => {
-      const dd = (d instanceof Date)? d : new Date(d+"T12:00:00"); // asegurar local
+      const dd = (d instanceof Date)? d : new Date(d+"T12:00:00");
       return dd.toLocaleDateString('es-CO',{weekday:'short', day:'2-digit', month:'2-digit'}).replace('.','');
     };
     const fmtMonth = (y,m) => new Date(y,m,1).toLocaleDateString('es-CO',{month:'long', year:'numeric'});
     const mondayOf = (d) => { const x=new Date(d); const k=(x.getDay()+6)%7; x.setDate(x.getDate()-k); x.setHours(12,0,0,0); return x; };
     const weekStart = () => new Date(state.weekStart);
-    // Lunes a sábado
-    const weekEnd   = () => { const d=weekStart(); d.setDate(d.getDate()+5); return d; };
+    const weekEnd   = () => { const d=weekStart(); d.setDate(d.getDate()+5); return d; }; // lunes a sábado
     const rangeMonSat = (from) => { const out=[]; const d=new Date(from); for(let i=0;i<6;i++){ out.push(new Date(d)); d.setDate(d.getDate()+1);} return out; };
 
     const pillHTML = (loc) => {
@@ -376,7 +373,7 @@
       $('#weekLabel').textContent = `Semana del ${fmtDate(ws)} al ${fmtDate(we)}`;
       if(!state.orgId){ cont.innerHTML = `<div class="error">No hay organización</div>`; return; }
 
-      // miembros activos (con filtro de unidad)
+      // miembros activos
       let q = sb.from('team_members')
                 .select('id, full_name, unit')
                 .eq('org_id', state.orgId)
@@ -387,7 +384,7 @@
       const { data:members, error:em } = await q;
       if(em){ cont.innerHTML = `<div class="error">${em.message}</div>`; return; }
 
-      // poblar combos de unidades (solo si no hay selección previa)
+      // llenar unidades
       if(!unitSel){
         const { data:unitsRaw } = await sb.from('team_members').select('unit').eq('org_id', state.orgId).eq('active', true);
         const opts = [...new Set((unitsRaw||[]).map(r=>r.unit).filter(Boolean))].sort();
@@ -396,7 +393,7 @@
         sel.value = cur || '';
       }
 
-      // asistencia Lun..Sáb
+      // asistencia
       const { data:atts, error:ea } = await sb.from('attendance')
         .select('member_id, work_date, location')
         .eq('org_id', state.orgId)
@@ -404,7 +401,7 @@
         .limit(10000);
       if(ea){ cont.innerHTML = `<div class="error">${ea.message}</div>`; return; }
 
-      const days = rangeMonSat(ws).map(d=>iso(d)); // 6 días
+      const days = rangeMonSat(ws).map(d=>iso(d));
       const byId = new Map();
       for(const m of members){
         byId.set(m.id, { id:m.id, full_name:m.full_name, unit:m.unit||'—', days:Object.fromEntries(days.map(x=>[x,'na'])) });
@@ -438,18 +435,33 @@
       return header + body;
     }
 
-    // toggle: na -> home -> office -> na
+    // >>> Toggle: home -> office -> na (DELETE) -> home ...
     document.addEventListener('click', async (e)=>{
       const btn = e.target.closest('.cell.day'); if(!btn) return;
       if(!state.orgId) return;
       const id = btn.dataset.memberId, d = btn.dataset.date;
-      const order = ['na','home','office'];
+      const order = ['home','office','na'];
       const cur = btn.dataset.loc || 'na';
       const next = order[(order.indexOf(cur)+1)%order.length];
 
-      const payload = { org_id: state.orgId, member_id:id, work_date:d, location: next };
-      const { error } = await sb.from('attendance')
-        .upsert(payload, { onConflict: 'org_id,member_id,work_date' });
+      let error = null;
+      if(next === 'na'){
+        // al volver a "vacío" eliminamos el registro
+        const { error:delErr } = await sb.from('attendance')
+          .delete()
+          .eq('org_id', state.orgId)
+          .eq('member_id', id)
+          .eq('work_date', d);
+        error = delErr;
+      }else{
+        // guardar home/office
+        const { error:upErr } = await sb.from('attendance').upsert(
+          { org_id: state.orgId, member_id:id, work_date:d, location: next },
+          { onConflict: 'org_id,member_id,work_date' }
+        );
+        error = upErr;
+      }
+
       if(error){ alert('No se pudo marcar: '+error.message); return; }
       btn.dataset.loc = next;
       btn.innerHTML = pillHTML(next);
@@ -478,7 +490,6 @@
         .eq('org_id', state.orgId)
         .order('full_name');
 
-      // >>> Filtro por nombre o unidad <<<
       if(q){
         req = req.or(`full_name.ilike.%${q}%,unit.ilike.%${q}%`);
       }
